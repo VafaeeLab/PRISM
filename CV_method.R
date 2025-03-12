@@ -13,13 +13,48 @@ library(reshape)
 library(parallel)
 library(doParallel)
 
-setwd("/srv/scratch/z5309282") 
 source("functions.R")
 # Set seed for reproducibility
 set.seed(123)
 # Number of repeats and folds
 repeats <- 5
 folds <- 5
+
+# ============================================================
+# Cross-validation Pipeline
+# ============================================================
+
+# This script processes multi-omics data (ME, DM, GE, CNV) for four cancer types: 
+# BRCA, OV, CESC, and UCEC. The main objectives are:
+# 1. Extract survival data and gene-level features.
+# 2. Create train and test datasets for each omics type.
+# 3. Track occurrences of gene-level features.
+# 4. Perform feature selection using cross-validation (CV).
+# 5. Evaluate selected features against models without feature selection.
+
+# --------------------
+# Workflow
+# --------------------
+# 1. Data Loading: Reads omics datasets for each cancer type.
+# 2. Feature Extraction: Extracts survival data and gene-level features.
+# 3. Data Splitting: Creates train and test sets for each omics dataset.
+# 4. Feature Selection (perform_feature_selection_CV function):
+#    - Applies four filter methods: 
+#      - Multivariate CoxPH
+#      - Random Forest and its extensions
+#    - Features are selected based on:
+#      - Non-zero coefficients
+#      - P-values (CoxPH)
+#      - Importance scores (Random Forest)
+#    - Each method runs 5-fold, 5-repeat CV (100 runs total).
+#    - Features appearing ≥50 times are retained.
+# 5. Model Evaluation: 
+#    - Selected features are evaluated on the training set.
+#    - Performance is compared against models without feature selection.
+
+
+
+
 ####################################################################
 #                           BRCA
 #
