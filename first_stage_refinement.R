@@ -67,7 +67,7 @@ BRCA_ME_normalized <- min_max_normalize(BRCA_ME_filtered)
 BRCA_GE_normalized <- min_max_normalize(BRCA_GE_filtered)
 BRCA_CNV_normalized <- min_max_normalize(BRCA_CNV_filtered)
 
-# Early Fusion -------------------------------------------------------------------
+# First Stage Refinement -------------------------------------------------------------------
 # ME AND GE
 BRCA_ME_GE <- merge(BRCA_ME_normalized, BRCA_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
 BRCA_ME_GE$overall_survival[BRCA_ME_GE$overall_survival <= 0] <- 0.001
