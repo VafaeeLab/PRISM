@@ -12,11 +12,23 @@ library(tidyverse)
 library(reshape)
 library(dplyr)
 
-setwd("/srv/scratch/z5309282") 
+
 source("functions.R")
-# Set seed for reproducibility
 set.seed(123)
 
+# *********************************************************************
+# Second Stage Refinement R Script Documentation
+# *********************************************************************
+
+# Overview:
+# The Second Stage Refinement script processes the omics data by:
+# 1. Reading the omics features selected by the cross-validation (CV) pipeline.
+# 2. Min-Max normalizing the omics data.
+# 3. Performing RFE on each of the single omics data - First Stage Refinement 
+# 4. Once we have a refined set, we concat each possible omics combination and run it through RFE again - Second Stage Refinement
+# This script prepares multi-omics datasets for further downstream analysis or modeling.
+
+# *********************************************************************
 
 ####################################################################
 #                           BRCA
@@ -61,7 +73,7 @@ BRCA_ME_normalized <- min_max_normalize(BRCA_ME_filtered)
 BRCA_GE_normalized <- min_max_normalize(BRCA_GE_filtered)
 BRCA_CNV_normalized <- min_max_normalize(BRCA_CNV_filtered)
 
-#-------------------------------------------------------------------------------
+# First Stage Refinement-------------------------------------------------------------------------------
 # ME 
 BRCA_ME_normalized$overall_survival[BRCA_ME_normalized$overall_survival <= 0] <- 0.001
 BRCA_ME_normalized_survival_data <- Surv(BRCA_ME_normalized$overall_survival, BRCA_ME_normalized$deceased)
@@ -107,7 +119,7 @@ BRCA_ME_normalized <- min_max_normalize(BRCA_ME_filtered)
 BRCA_GE_normalized <- min_max_normalize(BRCA_GE_filtered)
 BRCA_CNV_normalized <- min_max_normalize(BRCA_CNV_filtered)
 
-# Late Fusion -------------------------------------------------------------------
+# Stage 2 Refinement-------------------------------------------------------------------
 # ME AND GE
 BRCA_ME_GE <- merge(BRCA_ME_normalized, BRCA_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
 BRCA_ME_GE$overall_survival[BRCA_ME_GE$overall_survival <= 0] <- 0.001
