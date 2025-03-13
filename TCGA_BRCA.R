@@ -418,6 +418,7 @@ names(tcga_BRCA_ME_data) <- tcga_BRCA_ME_columns
 BRCA_matrix_ME <- as.matrix(tcga_BRCA_ME_data)
 dim(BRCA_matrix_ME)  # Check dimensions of the data
 # Filter out features (miRNAs) and samples with more than 50% missing values
+missing_threshold <- 0.5
 missing_percentage_features <- rowMeans(is.na(BRCA_matrix_ME))
 selected_features <- which(missing_percentage_features <= missing_threshold)
 BRCA_matrix_ME_filtered_features <- BRCA_matrix_ME[selected_features, ]
