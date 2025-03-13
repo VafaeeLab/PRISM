@@ -347,15 +347,39 @@ fusion <- function(data, survival_data, directory = ".", file_prefix = "output")
 # Notes:
 # - The C-index is used as a measure of the model's discriminatory ability (the ability to correctly rank pairs of 
 #   subjects in terms of their predicted survival times).
-evaluate_performance <- function(train_df, train_survival, test_df, test_survival) {
+evaluate_performance <- function(train_df, train_survival, test_df, test_survival, n_bootstrap = 30, conf_level = 0.95) {
+  # Initialize function to calculate bootstrap confidence intervals and p-values
+  bootstrap_ci <- function(predictions, true_values, n_bootstrap, conf_level) {
+    c_index_values <- numeric(n_bootstrap)
+    for (i in 1:n_bootstrap) {
+      sample_indices <- sample(1:length(true_values), length(true_values), replace = TRUE)
+      boot_true_values <- true_values[sample_indices]
+      boot_predictions <- predictions[sample_indices]
+      c_index_values[i] <- concordance(boot_true_values ~ boot_predictions)$concordance
+    }
+    
+    # Compute the confidence interval
+    lower_ci <- quantile(c_index_values, (1 - conf_level) / 2)
+    upper_ci <- quantile(c_index_values, 1 - (1 - conf_level) / 2)
+    mean_c_index <- mean(c_index_values)
+    std_c_index <- sd(c_index_values)
+    
+    # Assuming p-value calculation is based on comparing mean c-index to a reference or baseline model
+    # For simplicity, let's just calculate a one-sided p-value assuming a normal distribution
+    p_value <- 2 * (1 - pnorm(mean_c_index, mean = 0.5, sd = std_c_index))  # Example: comparing to 0.5 baseline
+    
+    return(list(mean_c_index = mean_c_index, std_c_index = std_c_index, lower_ci = lower_ci, upper_ci = upper_ci, p_value = p_value))
+  }
   
+  # Prepare matrices
   train_x_matrix <- as.matrix(train_df)
   test_x_matrix <- as.matrix(test_df)
+  
   # Cox Model
   eval_cox_model <- coxph(train_survival ~ ., data = train_df)
   cox_predictions <- predict(eval_cox_model, newdata = test_df)
   c_index_cox <- concordance(test_survival ~ cox_predictions)
-  c_index_cox_results <- c_index_cox$concordance
+  cox_results <- bootstrap_ci(cox_predictions, test_survival, n_bootstrap, conf_level)
   
   # Random Forest (Ranger)
   mtry_value <- floor(sqrt(ncol(train_df)))
@@ -370,34 +394,40 @@ evaluate_performance <- function(train_df, train_survival, test_df, test_surviva
   )
   
   ranger_predictions <- predict(eval_r_fit, data = test_df)$survival
-  c_index_ranger <- concordance(test_survival ~ ranger_predictions)
-  # Check if there are multiple c-index values
-  if (length(c_index_ranger$concordance) > 1) {
-    # Compute the mean of multiple c-index values
-    mean_c_index <- mean(c_index_ranger$concordance)
-  } else {
-    # Only one c-index value, do nothing
-    mean_c_index <- c_index_ranger$concordance
-  }
-  c_index_ranger_results <- mean_c_index
+  ranger_results <- bootstrap_ci(ranger_predictions, test_survival, n_bootstrap, conf_level)
   
   # Boosted Cox Model (GLMBoost)
   eval_boosted_cox_model <- glmboost(train_survival ~ ., data = train_df, family = CoxPH())
   glmboost_predictions <- predict(eval_boosted_cox_model, newdata = test_df)
-  c_index_glmboost <- concordance(test_survival ~ glmboost_predictions)
-  c_index_glmboost_results <- c_index_glmboost$concordance
+  glmboost_results <- bootstrap_ci(glmboost_predictions, test_survival, n_bootstrap, conf_level)
   
   # Elastic Net Cox Model
   elastic_net_model <- cv.glmnet(x = train_x_matrix, y = train_survival, family = "cox", alpha = 0.5)
-  predictions <- predict(elastic_net_model, newx = test_x_matrix, s = "lambda.min")
-  c_index <- concordance(test_survival ~ predictions)
-  c_index_elasticnet_results <- c_index$concordance
+  elastic_net_predictions <- predict(elastic_net_model, newx = test_x_matrix, s = "lambda.min")
+  elastic_net_results <- bootstrap_ci(elastic_net_predictions, test_survival, n_bootstrap, conf_level)
   
+  # Create data frame with results
   cindex_df <- data.frame(
-    CIndexCox = c_index_cox_results,
-    CIndexRanger = c_index_ranger_results,
-    CIndexGLMBoost = c_index_glmboost_results,
-    CIndexElasticNet = c_index_elasticnet_results
+    CIndexCox = cox_results$mean_c_index,
+    CIndexRanger = ranger_results$mean_c_index,
+    CIndexGLMBoost = glmboost_results$mean_c_index,
+    CIndexElasticNet = elastic_net_results$mean_c_index,
+    StdCox = cox_results$std_c_index,
+    StdRanger = ranger_results$std_c_index,
+    StdGLMBoost = glmboost_results$std_c_index,
+    StdElasticNet = elastic_net_results$std_c_index,
+    LowerCI_Cox = cox_results$lower_ci,
+    LowerCI_Ranger = ranger_results$lower_ci,
+    LowerCI_GLMBoost = glmboost_results$lower_ci,
+    LowerCI_ElasticNet = elastic_net_results$lower_ci,
+    UpperCI_Cox = cox_results$upper_ci,
+    UpperCI_Ranger = ranger_results$upper_ci,
+    UpperCI_GLMBoost = glmboost_results$upper_ci,
+    UpperCI_ElasticNet = elastic_net_results$upper_ci,
+    PValueCox = cox_results$p_value,
+    PValueRanger = ranger_results$p_value,
+    PValueGLMBoost = glmboost_results$p_value,
+    PValueElasticNet = elastic_net_results$p_value
   )
   
   return(cindex_df)
