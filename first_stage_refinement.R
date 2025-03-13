@@ -12,11 +12,22 @@ library(tidyverse)
 library(reshape)
 library(dplyr)
 
-setwd("/srv/scratch/z5309282") 
+
 source("functions.R")
-# Set seed for reproducibility
 set.seed(123)
 
+# *********************************************************************
+# First Stage Refinement R Script Documentation
+# *********************************************************************
+
+# Overview:
+# The First Stage Refinement script processes the omics data by:
+# 1. Reading the omics features selected by the cross-validation (CV) pipeline.
+# 2. Min-Max normalizing the omics data.
+# 3. Performing feature-level fusion on all possible combinations of omics data.
+
+
+# *********************************************************************
 ####################################################################
 #                           BRCA
 #
