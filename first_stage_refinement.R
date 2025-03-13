@@ -170,7 +170,7 @@ OV_ME_normalized <- min_max_normalize(OV_ME_filtered)
 OV_GE_normalized <- min_max_normalize(OV_GE_filtered)
 OV_CNV_normalized <- min_max_normalize(OV_CNV_filtered)
 
-# Early Fusion -------------------------------------------------------------------
+# First Stage Refinement -------------------------------------------------------------------
 # ME AND GE
 OV_ME_GE <- merge(OV_ME_normalized, OV_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
 OV_ME_GE$overall_survival[OV_ME_GE$overall_survival <= 0] <- 0.001
@@ -273,7 +273,7 @@ CESC_ME_normalized <- min_max_normalize(CESC_ME_filtered)
 CESC_GE_normalized <- min_max_normalize(CESC_GE_filtered)
 CESC_CNV_normalized <- min_max_normalize(CESC_CNV_filtered)
 
-# Early Fusion -------------------------------------------------------------------
+# First Stage Refinement -------------------------------------------------------------------
 # ME AND GE
 CESC_ME_GE <- merge(CESC_ME_normalized, CESC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
 CESC_ME_GE$overall_survival[CESC_ME_GE$overall_survival <= 0] <- 0.001
@@ -335,6 +335,108 @@ CESC_ME_GE_CNV_METH <- merge(CESC_ME_GE_CNV_METH, CESC_METH_filtered, by = c("ca
 CESC_ME_GE_CNV_METH $overall_survival[CESC_ME_GE_CNV_METH$overall_survival <= 0] <- 0.001
 CESC_ME_GE_CNV_METH_survival_data <- Surv(CESC_ME_GE_CNV_METH$overall_survival, CESC_ME_GE_CNV_METH$deceased)
 fusion(CESC_ME_GE_CNV_METH, CESC_ME_GE_CNV_METH_survival_data, directory = "CESC/EF", file_prefix = "CESC_ME_GE_CNV_METH")
+
+####################################################################
+#                           UCEC
+#
+####################################################################
+
+ME_features=read.csv("UCEC/ME/features_cv.csv", row.names = NULL)
+GE_features=read.csv("UCEC/GE/features_cv.csv", row.names = NULL)
+METH_features=read.csv("UCEC/METH/features_cv.csv", row.names = NULL)
+CNV_features=read.csv("UCEC/CNV/features_cv.csv", row.names = NULL)
+
+UCEC_ME=read.csv("UCEC/UCEC_ME_data.csv", row.names = NULL)
+UCEC_GE=read.csv("UCEC/UCEC_GE_data.csv", row.names = NULL)
+UCEC_METH=read.csv("UCEC/UCEC_METH_data.csv", row.names = NULL)
+UCEC_CNV=read.csv("UCEC/UCEC_CNV_data.csv", row.names = NULL)
+
+UCEC_METH <- UCEC_METH[,-1]
+UCEC_ME <- UCEC_ME[,-1]
+UCEC_GE <- UCEC_GE[,-1]
+UCEC_CNV <- UCEC_CNV[,-1]
+
+# Preprocess-----------------------------------------------------------------------
+UCEC_ME_filtered <- UCEC_ME[, intersect(colnames(UCEC_ME), ME_features$Feature)]
+UCEC_ME_filtered <- cbind(UCEC_ME[, 1:3], UCEC_ME_filtered)
+colnames(UCEC_ME_filtered)[-c(1:3)] <- paste("ME_", colnames(UCEC_ME_filtered)[-c(1:3)], sep = "")
+UCEC_GE_filtered <- UCEC_GE[, intersect(colnames(UCEC_GE), GE_features$Feature)]
+UCEC_GE_filtered <- cbind(UCEC_GE[, 1:3], UCEC_GE_filtered)
+colnames(UCEC_GE_filtered)[-c(1:3)] <- paste("GE_", colnames(UCEC_GE_filtered)[-c(1:3)], sep = "")
+UCEC_METH_filtered <- UCEC_METH[, intersect(colnames(UCEC_METH), METH_features$Feature)]
+UCEC_METH_filtered <- cbind(UCEC_METH[, 1:3], UCEC_METH_filtered)
+colnames(UCEC_METH_filtered)[-c(1:3)] <- paste("METH_", colnames(UCEC_METH_filtered)[-c(1:3)], sep = "")
+UCEC_CNV_filtered <- UCEC_CNV[, intersect(colnames(UCEC_CNV), CNV_features$Feature)]
+UCEC_CNV_filtered <- cbind(UCEC_CNV[, 1:3], UCEC_CNV_filtered)
+colnames(UCEC_CNV_filtered)[-c(1:3)] <- paste("CNV_", colnames(UCEC_CNV_filtered)[-c(1:3)], sep = "")
+
+# Apply min-max normalization to features (excluding first three columns)
+UCEC_ME_normalized <- min_max_normalize(UCEC_ME_filtered)
+UCEC_GE_normalized <- min_max_normalize(UCEC_GE_filtered)
+UCEC_CNV_normalized <- min_max_normalize(UCEC_CNV_filtered)
+
+# First Stage Refinement -------------------------------------------------------------------
+# ME AND GE
+UCEC_ME_GE <- merge(UCEC_ME_normalized, UCEC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_GE$overall_survival[UCEC_ME_GE$overall_survival <= 0] <- 0.001
+UCEC_ME_GE_survival_data <- Surv(UCEC_ME_GE$overall_survival, UCEC_ME_GE$deceased)
+fusion(UCEC_ME_GE, UCEC_ME_GE_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_ME_GE")
+# ME AND METH
+UCEC_ME_METH <- merge(UCEC_ME_normalized, UCEC_METH_filtered, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_METH$overall_survival[UCEC_ME_METH$overall_survival <= 0] <- 0.001
+UCEC_ME_METH_survival_data <- Surv(UCEC_ME_METH$overall_survival, UCEC_ME_METH$deceased)
+fusion(UCEC_ME_METH, UCEC_ME_METH_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_ME_METH")
+# METH AND GE
+UCEC_METH_GE <- merge(UCEC_METH_filtered, UCEC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_GE$overall_survival[UCEC_METH_GE$overall_survival <= 0] <- 0.001
+UCEC_METH_GE_survival_data <- Surv(UCEC_METH_GE$overall_survival, UCEC_METH_GE$deceased)
+fusion(UCEC_METH_GE, UCEC_METH_GE_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_METH_GE")
+# GE AND CNV
+UCEC_GE_CNV <- merge(UCEC_GE_normalized, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_GE_CNV$overall_survival[UCEC_GE_CNV$overall_survival <= 0] <- 0.001
+UCEC_GE_CNV_survival_data <- Surv(UCEC_GE_CNV$overall_survival, UCEC_GE_CNV$deceased)
+fusion(UCEC_GE_CNV, UCEC_GE_CNV_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_GE_CNV")
+# ME AND CNV
+UCEC_ME_CNV <- merge(UCEC_ME_normalized, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_CNV$overall_survival[UCEC_ME_CNV$overall_survival <= 0] <- 0.001
+UCEC_ME_CNV_survival_data <- Surv(UCEC_ME_CNV$overall_survival, UCEC_ME_CNV$deceased)
+fusion(UCEC_ME_CNV, UCEC_ME_CNV_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_ME_CNV")
+# METH AND CNV ------------------------
+UCEC_METH_CNV <- merge(UCEC_METH_filtered, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_CNV$overall_survival[UCEC_METH_CNV$overall_survival <= 0] <- 0.001
+UCEC_METH_CNV_survival_data <- Surv(UCEC_METH_CNV$overall_survival, UCEC_METH_CNV$deceased)
+fusion(UCEC_METH_CNV, UCEC_METH_CNV_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_METH_CNV")
+# METH AND GE AND ME
+UCEC_METH_GE_ME <- merge(UCEC_METH_filtered, UCEC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_GE_ME <- merge(UCEC_METH_GE_ME, UCEC_ME_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_GE_ME $overall_survival[UCEC_METH_GE_ME$overall_survival <= 0] <- 0.001
+UCEC_METH_GE_ME_survival_data <- Surv(UCEC_METH_GE_ME$overall_survival, UCEC_METH_GE_ME$deceased)
+fusion(UCEC_METH_GE_ME, UCEC_METH_GE_ME_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_METH_GE_ME")
+# METH AND GE AND CNV
+UCEC_METH_GE_CNV <- merge(UCEC_METH_filtered, UCEC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_GE_CNV <- merge(UCEC_METH_GE_CNV, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_GE_CNV $overall_survival[UCEC_METH_GE_CNV$overall_survival <= 0] <- 0.001
+UCEC_METH_GE_CNV_survival_data <- Surv(UCEC_METH_GE_CNV$overall_survival, UCEC_METH_GE_CNV$deceased)
+fusion(UCEC_METH_GE_CNV, UCEC_METH_GE_CNV_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_METH_GE_CNV")
+# METH AND ME AND CNV
+UCEC_METH_ME_CNV <- merge(UCEC_METH_filtered, UCEC_ME_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_ME_CNV <- merge(UCEC_METH_ME_CNV, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_METH_ME_CNV $overall_survival[UCEC_METH_ME_CNV$overall_survival <= 0] <- 0.001
+UCEC_METH_ME_CNV_survival_data <- Surv(UCEC_METH_ME_CNV$overall_survival, UCEC_METH_ME_CNV$deceased)
+fusion(UCEC_METH_ME_CNV, UCEC_METH_ME_CNV_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_METH_ME_CNV")
+# ME AND GE AND CNV
+UCEC_ME_GE_CNV <- merge(UCEC_ME_normalized, UCEC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_GE_CNV <- merge(UCEC_ME_GE_CNV, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_GE_CNV $overall_survival[UCEC_ME_GE_CNV$overall_survival <= 0] <- 0.001
+UCEC_ME_GE_CNV_survival_data <- Surv(UCEC_ME_GE_CNV$overall_survival, UCEC_ME_GE_CNV$deceased)
+fusion(UCEC_ME_GE_CNV, UCEC_ME_GE_CNV_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_ME_GE_CNV")
+# ME AND GE AND CNV AND METH
+UCEC_ME_GE_CNV_METH <- merge(UCEC_ME_normalized, UCEC_GE_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_GE_CNV_METH <- merge(UCEC_ME_GE_CNV_METH, UCEC_CNV_normalized, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_GE_CNV_METH <- merge(UCEC_ME_GE_CNV_METH, UCEC_METH_filtered, by = c("case_id", "deceased", "overall_survival"))
+UCEC_ME_GE_CNV_METH $overall_survival[UCEC_ME_GE_CNV_METH$overall_survival <= 0] <- 0.001
+UCEC_ME_GE_CNV_METH_survival_data <- Surv(UCEC_ME_GE_CNV_METH$overall_survival, UCEC_ME_GE_CNV_METH$deceased)
+fusion(UCEC_ME_GE_CNV_METH, UCEC_ME_GE_CNV_METH_survival_data, directory = "UCEC/EF", file_prefix = "UCEC_ME_GE_CNV_METH")
 
 
 
