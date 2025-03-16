@@ -13,13 +13,34 @@ library(reshape)
 library(parallel)
 library(doParallel)
 
-setwd("/srv/scratch/z5309282") 
 source("functions.R")
-
-# Set seed for reproducibility
 repeats <- 5
 folds <- 5
 set.seed(123)
+
+# *********************************************************************
+# Evaluation of Individual Filter Methods R Script Documentation
+# *********************************************************************
+
+# Overview:
+# The script processes omics data for different cancer types 
+# by applying an individual filter methods pipeline. The script performs:
+# 1. Extracting each omics dataset (GE, CNV, ME, DM) for each cancer type.
+# 3. Evaluating each filter method independently using cross-validation (CV).
+# 4. Assessing the performance of each filter method when paired with predictive models.
+# 5. Summarizing results in a heatmap displaying mean performance across models.
+
+# Purpose:
+# This script enables a systematic evaluation of filter-based feature selection 
+# methods and their effectiveness in predictive modeling.
+
+# Input Data:
+# - Omics datasets (GE, CNV, ME, DM) preprocessed by the CV pipeline.
+
+# Output:
+# - Performance metrics for each filter method.
+# - Heatmap illustrating the effectiveness of each filter method across models.
+# *********************************************************************
 
 ####################################################################
 #                           BRCA
