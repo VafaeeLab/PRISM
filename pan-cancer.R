@@ -30,6 +30,25 @@ library(DOSE)
 source("functions.R")
 set.seed(123)
 
+# *********************************************************************
+# Pan-cancer Analysis R Script Documentation
+# *********************************************************************
+
+# Overview:
+# This script conducts a pan-cancer analysis for four cancer types (BRCA, OV, CESC, and UCEC) to uncover 
+# shared multi-modal signatures across these cancers. The steps in the analysis are as follows:
+# 1. **MiRA Targets**: Identifies unique & common miRNA gene targets across the four cancers 
+# 2. **Gene Targets Disease Associations**: Using the gene targets, identifies further overlap
+#    via diease associations
+# 3. **GSEA**: Extracts the GO Terms and KEGG Pathways from the gene set
+# 4. **GO TERMS AND KEGG PATHWAYS**: Filters for the top 10 GO terms & KEGG Pathways with the highest aggregated scores.
+#    and plots it
+# 5. **GO & KEGG Overlaps**: Plots the  top 10 GO & KEGG overlaps that appear in all four cancer, sorted by highest aggregated scores
+# 6. **KM plots**: Creates KM plots for survival analysis
+# This analysis aims to identify shared biological themes, potential overlaps in miRNA targets, and key pathways across 
+# the cancers under study.
+
+# *********************************************************************
 
 # Load multi-omics feature-level fusion datasets for each cancer type
 BRCA_data = read.csv("BRCA/LF/BRCA_METH_ME_CNV_data.csv", row.names = NULL)
@@ -94,115 +113,10 @@ OV_meth_genes <- extract_meth_names(OV_vars)
 CESC_meth_genes <- extract_meth_names(CESC_vars)
 UCEC_meth_genes <- extract_meth_names(UCEC_vars)
 
-#################################################################################
-#                           KM PLOTS
-#################################################################################
-
-BRCA_CNV_data = read.csv("BRCA/BRCA_CNV_data.csv", row.names = NULL)
-CESC_CNV_data = read.csv("CESC/CESC_CNV_data.csv", row.names = NULL)
-UCEC_CNV_data = read.csv("UCEC/UCEC_CNV_data.csv", row.names = NULL)
-
-BRCA_ME_data <- read.csv("BRCA/BRCA_ME_data.csv", row.names = NULL)
-CESC_ME_data <- read.csv("CESC/CESC_ME_data.csv", row.names = NULL)
-UCEC_ME_data <- read.csv("UCEC/UCEC_ME_data.csv", row.names = NULL)
-OV_ME_data <- read.csv("OV/OV_ME_data.csv", row.names = NULL)
-
-BRCA_METH_data <- read.csv("BRCA/BRCA_METH_data.csv", row.names = NULL)
-CESC_METH_data <- read.csv("CESC/CESC_METH_data.csv", row.names = NULL)
-UCEC_METH_data <- read.csv("UCEC/UCEC_METH_data.csv", row.names = NULL)
-OV_METH_data <- read.csv("OV/OV_METH_data.csv", row.names = NULL)
-
-BRCA_CNV_data <- BRCA_CNV_data[,-1]
-CESC_CNV_data <- CESC_CNV_data[,-1]
-UCEC_CNV_data <- UCEC_CNV_data[,-1]
-
-BRCA_ME_data <- BRCA_ME_data[,-1]
-CESC_ME_data <- CESC_ME_data[,-1]
-UCEC_ME_data <- UCEC_ME_data[,-1]
-OV_ME_data <- OV_ME_data[,-1]
-
-BRCA_METH_data <- BRCA_METH_data[,-1]
-CESC_METH_data <- CESC_METH_data[,-1]
-UCEC_METH_data <- UCEC_METH_data[,-1]
-OV_METH_data <- OV_METH_data[,-1]
-
-
-# Adapted function for creating KM plots for gene expression/miRNA data - example
-gene <- "TIMP2"
-data <- BRCA_gene_data
-cancer <- "BRCA"
-data <- data[, c("case_id", "overall_survival", "deceased", gene)]
-column_value <- data[[gene]]
-median_value <- median(column_value, na.rm = TRUE)
-data <- data %>%
-  mutate(strata = case_when(
-    data[[gene]] >= median_value ~ "High",
-    data[[gene]] < median_value ~ "Low",
-    TRUE ~ NA_character_
-  ))
-combined_data <- na.omit(data)
-surv_object <- Surv(time = combined_data$overall_survival, event = combined_data$deceased)
-fit <- survfit(surv_object ~ strata, data = combined_data)
-ggsurv <- ggsurvplot(fit,
-                     data = combined_data,
-                     risk.table = TRUE,
-                     pval = TRUE,
-                     title = paste("Kaplan-Meier Curve", cancer, "for gene:", gene),
-                     xlab = "Time (days)",
-                     ylab = "Survival Probability",
-                     palette = "Dark2")
-print(ggsurv)
-
-# Adapted function for creating KM plots for methylation data - example
-cpg_probe <-"cg17525406"
-data <- UCEC_METH_data
-cancer <- "UCEC"
-data <- data[, c("case_id", "overall_survival", "deceased", cpg_probe)]
-data[[cpg_probe]] <- as.numeric(data[[cpg_probe]])
-# Categorize methylation levels
-data$strata <- cut(data[[cpg_probe]], 
-                   breaks = c(-Inf, 0.2, 0.8, Inf), 
-                   labels = c("Low", "Partial", "High"),
-                   right = FALSE)
-surv_object <- Surv(time = data$overall_survival, event = data$deceased)
-fit <- survfit(surv_object ~ strata, data = data)
-ggsurv <- ggsurvplot(fit,
-                     data = data,
-                     risk.table = TRUE,
-                     pval = TRUE,
-                     title = paste("Kaplan-Meier Curve", cancer, "for CpG Probe:", cpg_probe),
-                     xlab = "Time (days)",
-                     ylab = "Survival Probability",
-                     palette = "Dark2")
-print(ggsurv)
-
-# Adapted function for creating KM plots for CNV data - example
-gene <-"AHNAK"
-data <- BRCA_CNV_data
-cancer <- "BRCA"
-# Select relevant columns including the specific gene column
-data <- data[, c("case_id", "overall_survival", "deceased", gene)]
-# Ensure the specific gene column is numeric
-data[[gene]] <- as.numeric(data[[gene]])
-# Categorize CNV into Gain, Loss, and Neutral
-data$strata <- ifelse(data[[gene]] > 0, "Gain",
-                      ifelse(data[[gene]] < 0, "Loss", "Neutral"))
-surv_object <- Surv(time = data$overall_survival, event = data$deceased)
-fit <- survfit(surv_object ~ strata, data = data)
-ggsurv <- ggsurvplot(fit,
-                     data = data,
-                     risk.table = TRUE,
-                     pval = TRUE,
-                     title = paste("Kaplan-Meier Curve", cancer, "for Gene:", gene),
-                     xlab = "Time (days)",
-                     ylab = "Survival Probability",
-                     palette = "Dark2")
-print(ggsurv)
-
 
 
 #################################################################################
-#                           MiRA Targets
+#                             MiRA Targets
 #################################################################################
 
 BRCA_me_genes <- extract_me_names(BRCA_vars)
@@ -221,10 +135,6 @@ convert_miRNA_ids <- function(mirna_ids) {
   }
   return(converted_ids)
 }
-
-#################################################################################
-#                         Get gene targets from Validated
-#################################################################################
 
 # Convert miRNA IDs for BRCA and retrieve target genes using multiMiR
 BRCA_me_genes <- convert_miRNA_ids(BRCA_me_genes)
@@ -347,7 +257,7 @@ common_gene_freq <- combined_targets %>%
 
 
 #################################################################################
-#         Get gene targets associated with a given disease
+#                      Gene Targets Disease Associations
 #################################################################################
 
 # Retrieve miRNA-disease associations for BRCA using multiMiR's 'mir2disease' table
@@ -503,8 +413,30 @@ p <- ggraph(tidy_graph, layout = "fr") +
 # Export the plot to a PDF
 ggsave("miRNA_Disease_Associations.pdf", plot = p, width = 10, height = 8)
 
+
+# Extract gene symbols for each cancer type from their respective data frames
+BRCA_genes <- BRCA_gene_target_df$target_symbol
+CESC_genes <- CESC_gene_target_df$target_symbol
+UCEC_genes <- UCEC_gene_target_df$target_symbol
+OV_genes <- OV_gene_target_df$target_symbol
+# Find the intersection of gene symbols across all four cancer types (BRCA, CESC, UCEC, OV)
+geneList <- Reduce(intersect, list(BRCA_genes, CESC_genes, UCEC_genes, OV_genes))
+# Convert the list of gene symbols to ENTREZ IDs using the bitr function from the clusterProfiler package
+# This is necessary if you need to perform enrichment analysis based on ENTREZ IDs
+geneList_entrez <- bitr(geneList, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
+# Perform enrichment analysis using the Disease Gene Network (DisGeNET) to identify disease-related genes
+edo <- enrichDGN(geneList_entrez$ENTREZID)
+# Perform pairwise similarity analysis on the enriched terms to improve the visualization of the enrichment map
+edo <- pairwise_termsim(edo)
+# Open a PDF device to save the generated enrichment map plot
+pdf("emapplot_output.pdf", width = 8, height = 6)  # Set the dimensions of the output plot
+# Generate and display the enrichment map plot
+emapplot(edo)
+# Close the PDF device, saving the plot to the file
+dev.off()
+
 #################################################################################
-#                                  Enrich
+#                                     GSEA
 #################################################################################
 # Retrieve available Enrichr databases
 dbs <- listEnrichrDbs()
@@ -568,31 +500,7 @@ UCEC_significant_results_KEGG <- UCEC_GSEA_results[grepl("KEGG", rownames(UCEC_G
 
 
 #################################################################################
-#                                  CNETPLOT
-#################################################################################
-# Extract gene symbols for each cancer type from their respective data frames
-BRCA_genes <- BRCA_gene_target_df$target_symbol
-CESC_genes <- CESC_gene_target_df$target_symbol
-UCEC_genes <- UCEC_gene_target_df$target_symbol
-OV_genes <- OV_gene_target_df$target_symbol
-# Find the intersection of gene symbols across all four cancer types (BRCA, CESC, UCEC, OV)
-geneList <- Reduce(intersect, list(BRCA_genes, CESC_genes, UCEC_genes, OV_genes))
-# Convert the list of gene symbols to ENTREZ IDs using the bitr function from the clusterProfiler package
-# This is necessary if you need to perform enrichment analysis based on ENTREZ IDs
-geneList_entrez <- bitr(geneList, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
-# Perform enrichment analysis using the Disease Gene Network (DisGeNET) to identify disease-related genes
-edo <- enrichDGN(geneList_entrez$ENTREZID)
-# Perform pairwise similarity analysis on the enriched terms to improve the visualization of the enrichment map
-edo <- pairwise_termsim(edo)
-# Open a PDF device to save the generated enrichment map plot
-pdf("emapplot_output.pdf", width = 8, height = 6)  # Set the dimensions of the output plot
-# Generate and display the enrichment map plot
-emapplot(edo)
-# Close the PDF device, saving the plot to the file
-dev.off()
-
-#################################################################################
-#                                  Overlaps
+#                            GO TERMS AND KEGG PATHWAYS
 #################################################################################
 
 # Extract GO term IDs from the 'Term' column in the BRCA, OV, CESC, and UCEC data frames
@@ -783,7 +691,7 @@ ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
 
 
 #################################################################################
-#                           GO TERMS Overlap Across All Cancers 
+#                         GO TERMS Overlap Across All Cancers 
 #################################################################################
 BRCA_terms <- BRCA_significant_results_GO$Term
 OV_terms <- OV_significant_results_GO$Term
@@ -891,3 +799,107 @@ ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
+#################################################################################
+#                           KM PLOTS
+#################################################################################
+
+BRCA_CNV_data = read.csv("BRCA/BRCA_CNV_data.csv", row.names = NULL)
+CESC_CNV_data = read.csv("CESC/CESC_CNV_data.csv", row.names = NULL)
+UCEC_CNV_data = read.csv("UCEC/UCEC_CNV_data.csv", row.names = NULL)
+
+BRCA_ME_data <- read.csv("BRCA/BRCA_ME_data.csv", row.names = NULL)
+CESC_ME_data <- read.csv("CESC/CESC_ME_data.csv", row.names = NULL)
+UCEC_ME_data <- read.csv("UCEC/UCEC_ME_data.csv", row.names = NULL)
+OV_ME_data <- read.csv("OV/OV_ME_data.csv", row.names = NULL)
+
+BRCA_METH_data <- read.csv("BRCA/BRCA_METH_data.csv", row.names = NULL)
+CESC_METH_data <- read.csv("CESC/CESC_METH_data.csv", row.names = NULL)
+UCEC_METH_data <- read.csv("UCEC/UCEC_METH_data.csv", row.names = NULL)
+OV_METH_data <- read.csv("OV/OV_METH_data.csv", row.names = NULL)
+
+BRCA_CNV_data <- BRCA_CNV_data[,-1]
+CESC_CNV_data <- CESC_CNV_data[,-1]
+UCEC_CNV_data <- UCEC_CNV_data[,-1]
+
+BRCA_ME_data <- BRCA_ME_data[,-1]
+CESC_ME_data <- CESC_ME_data[,-1]
+UCEC_ME_data <- UCEC_ME_data[,-1]
+OV_ME_data <- OV_ME_data[,-1]
+
+BRCA_METH_data <- BRCA_METH_data[,-1]
+CESC_METH_data <- CESC_METH_data[,-1]
+UCEC_METH_data <- UCEC_METH_data[,-1]
+OV_METH_data <- OV_METH_data[,-1]
+
+
+# Adapted function for creating KM plots for gene expression/miRNA data - example
+gene <- "TIMP2"
+data <- BRCA_gene_data
+cancer <- "BRCA"
+data <- data[, c("case_id", "overall_survival", "deceased", gene)]
+column_value <- data[[gene]]
+median_value <- median(column_value, na.rm = TRUE)
+data <- data %>%
+  mutate(strata = case_when(
+    data[[gene]] >= median_value ~ "High",
+    data[[gene]] < median_value ~ "Low",
+    TRUE ~ NA_character_
+  ))
+combined_data <- na.omit(data)
+surv_object <- Surv(time = combined_data$overall_survival, event = combined_data$deceased)
+fit <- survfit(surv_object ~ strata, data = combined_data)
+ggsurv <- ggsurvplot(fit,
+                     data = combined_data,
+                     risk.table = TRUE,
+                     pval = TRUE,
+                     title = paste("Kaplan-Meier Curve", cancer, "for gene:", gene),
+                     xlab = "Time (days)",
+                     ylab = "Survival Probability",
+                     palette = "Dark2")
+print(ggsurv)
+
+# Adapted function for creating KM plots for methylation data - example
+cpg_probe <-"cg17525406"
+data <- UCEC_METH_data
+cancer <- "UCEC"
+data <- data[, c("case_id", "overall_survival", "deceased", cpg_probe)]
+data[[cpg_probe]] <- as.numeric(data[[cpg_probe]])
+# Categorize methylation levels
+data$strata <- cut(data[[cpg_probe]], 
+                   breaks = c(-Inf, 0.2, 0.8, Inf), 
+                   labels = c("Low", "Partial", "High"),
+                   right = FALSE)
+surv_object <- Surv(time = data$overall_survival, event = data$deceased)
+fit <- survfit(surv_object ~ strata, data = data)
+ggsurv <- ggsurvplot(fit,
+                     data = data,
+                     risk.table = TRUE,
+                     pval = TRUE,
+                     title = paste("Kaplan-Meier Curve", cancer, "for CpG Probe:", cpg_probe),
+                     xlab = "Time (days)",
+                     ylab = "Survival Probability",
+                     palette = "Dark2")
+print(ggsurv)
+
+# Adapted function for creating KM plots for CNV data - example
+gene <-"AHNAK"
+data <- BRCA_CNV_data
+cancer <- "BRCA"
+# Select relevant columns including the specific gene column
+data <- data[, c("case_id", "overall_survival", "deceased", gene)]
+# Ensure the specific gene column is numeric
+data[[gene]] <- as.numeric(data[[gene]])
+# Categorize CNV into Gain, Loss, and Neutral
+data$strata <- ifelse(data[[gene]] > 0, "Gain",
+                      ifelse(data[[gene]] < 0, "Loss", "Neutral"))
+surv_object <- Surv(time = data$overall_survival, event = data$deceased)
+fit <- survfit(surv_object ~ strata, data = data)
+ggsurv <- ggsurvplot(fit,
+                     data = data,
+                     risk.table = TRUE,
+                     pval = TRUE,
+                     title = paste("Kaplan-Meier Curve", cancer, "for Gene:", gene),
+                     xlab = "Time (days)",
+                     ylab = "Survival Probability",
+                     palette = "Dark2")
+print(ggsurv)
