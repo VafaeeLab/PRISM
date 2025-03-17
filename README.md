@@ -4,4 +4,36 @@ Survival analysis is essential for predicting patient outcomes and guiding perso
 
 ![image](https://github.com/user-attachments/assets/67e2bb8e-19ea-4038-9f6f-5084e87272d1)
 
+Computational Environment
+All analyses were conducted on the University of New South Wales (UNSW) Katana HPC and Gadi (NCI), utilizing 16 CPUs and 124 GB of memory per job to process large-scale omics data efficiently.
+
+While optimized for HPC, the pipeline can also run on local machines by reducing data size or enabling parallelization.
+The current parallelization code assumes 16 cores.
+Pipeline Overview
+To ensure reproducibility, we recommend running the scripts in the following order:
+
+1. TCGA Data Extraction & Preprocessing
+📌 Extract and preprocess omics data (GE, ME, CNV, DM) for each cancer type.
+
+Scripts: TCGA_BRCA.R, TCGA_CESC.R, TCGA_OV.R, TCGA_UCEC.R
+Note: Due to API changes from the GDC Portal (as of March 17, 2025), the GDCquery_clinic function in TCGAbiolinks may not work. You may need to manually download clinical data from the GDC Portal. For convenience, we have also provided preprocessed data.
+2. Evaluation of Individual Filter Methods
+📌 Evaluate individual feature selection methods.
+
+Script: individual_selection.R
+3. Cross-Validation Feature Selection
+📌 Run cross-validation-based feature selection to identify key prognostic features.
+
+Script: CV_method.R
+4. Multi-Omics Integration - One-Stage vs. Two-Stage Refinement
+📌 Compare one-stage and two-stage refinement for multi-omics feature selection.
+
+Scripts: first_stage_refinement.R, second_stage_refinement.R
+5. Pan-Cancer Downstream Analysis
+📌 Perform pan-cancer analyses to identify shared pathways and therapeutic targets.
+
+Script: pan-cancer.R
+Citation
+If you use PRISM in your research, please cite our work:
+📄 [Add your publication or preprint link here]
 
