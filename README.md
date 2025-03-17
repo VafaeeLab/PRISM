@@ -16,7 +16,7 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 ### **1. TCGA Data Extraction & Preprocessing**  
 📌 *Extract and preprocess omics data (GE, ME, CNV, DM) for each cancer type.*  
 - **Scripts:** `TCGA_BRCA.R`, `TCGA_CESC.R`, `TCGA_OV.R`, `TCGA_UCEC.R`  
-- **Note:** Due to API changes from the GDC Portal (as of *March 17, 2025*), the `GDCquery_clinic` function in `TCGAbiolinks` may not work. You may need to manually download clinical data from the GDC Portal. For convenience, we have also provided preprocessed data.  
+- **Note:** Due to API changes from the GDC Portal (as of *March 17, 2025*), the `GDCquery_clinic` function in `TCGAbiolinks` may not work. You may need to manually download clinical data from the GDC Portal. For convenience, we have also provided preprocessed data in [`Data`](./Data) folder of this repository..  
 
 ### **2. Evaluation of Individual Filter Methods**  
 📌 *Evaluate individual feature selection methods.*  
