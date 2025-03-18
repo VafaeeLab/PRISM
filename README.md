@@ -22,11 +22,15 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 
 ### **2. Evaluation of Individual Filter Methods**  
 📌 *Evaluate individual feature selection methods.*  
-- **Script:** `individual_selection.R`  
+- **Script:** `individual_selection.R`
+- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corrosponding `*_GE_data.csv`, `*_ME_data.csv`, `*_METH_data.csv`, `*_CNV_data.csv` omics data inside.
+- **Outputs:** Results for c-index & features selection for each modality per cancer type. `*_cindex_results.csv`, `*_feature_results.csv`,  `*_cindex_heatmap.pdf`,  `*_feature_heatmap.pdf`.
 
 ### **3. Cross-Validation Feature Selection**  
 📌 *Run cross-validation-based feature selection to identify key prognostic features.*  
-- **Script:** `CV_method.R`  
+- **Script:** `CV_method.R`
+- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corrosponding `*_GE_data.csv`, `*_ME_data.csv`, `*_METH_data.csv`, `*_CNV_data.csv` omics data inside.
+- **Outputs:** Creates `ME/`,`GE/`,`CNV/`, `METH/` omics subdirectories inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`. Where we have a csv of the features selected by CV `features_cv.csv`, as well as the results of performance against no feature selected `results_with_fs` `results_without_fs`. 
 
 ### **4. Multi-Omics Integration - One-Stage vs. Two-Stage Refinement**  
 📌 *Compare one-stage and two-stage refinement for multi-omics feature selection.*  
