@@ -36,7 +36,7 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 📌 *Compare one-stage and two-stage refinement for multi-omics feature selection.*  
 - **Scripts:** `first_stage_refinement.R`, `second_stage_refinement.R`
 - **Inputs:** This requires you to have features selected by CV `features_cv.csv` inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`.
-- **Outputs:** Creates a `LF/` directory inside of `ME/`,`GE/`,`CNV/`, `METH/`, where every modality combintation is stored as a csv.
+- **Outputs:** Creates a `LF/` directory inside of `ME/`,`GE/`,`CNV/`, `METH/` for Two-stage, will make `EF/` for First_stage, where every modality combintation is stored as a csv.
 
 ### **5. Pan-Cancer Downstream Analysis**  
 📌 *Perform pan-cancer analyses to identify shared pathways and therapeutic targets.*  
