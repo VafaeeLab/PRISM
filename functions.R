@@ -591,11 +591,55 @@ combine_results <- function(results) {
 # 7. Save the combined results to CSV files.
 plot_results <- function(no_fs_results, multi_results, uni_results, rsf_vi_results, rsf_md_results, rsf_vh_results, custom_name) {
   
-  # Create directory if it doesn't exist
+   # Create directory if it doesn't exist
   dir_name <- paste0(custom_name, "_plots")
   if (!dir.exists(dir_name)) {
     dir.create(dir_name)
   }
+  
+  # Extract C-Index and feature selection results
+  extract_cindex <- function(results, source_name) {
+    data.frame(
+      Source = source_name,
+      MeanCIndex = results$CIndex$MeanCIndex,
+      SDCIndex = results$CIndex$StandardDeviation,
+      LowerCI = results$CIndex$LowerCI,
+      UpperCI = results$CIndex$UpperCI
+    )
+  }
+  
+  extract_features <- function(results, source_name) {
+    data.frame(
+      Source = source_name,
+      MeanFeatureSelected = results$FeatureSelected$MeanFeatureSelected,
+      SDFeatureSelected = results$FeatureSelected$StandardDeviation,
+      LowerCI = results$FeatureSelected$LowerCI,
+      UpperCI = results$FeatureSelected$UpperCI
+    )
+  }
+  
+  # Extract and merge results, adding the source name to each
+  c_index_results <- rbind(
+    extract_cindex(no_fs_results, "No FS"),
+    extract_cindex(multi_results, "Multi"),
+    extract_cindex(uni_results, "Uni"),
+    extract_cindex(rsf_vi_results, "RSF VI"),
+    extract_cindex(rsf_md_results, "RSF MD"),
+    extract_cindex(rsf_vh_results, "RSF VH")
+  )
+  
+  feature_results <- rbind(
+    extract_features(no_fs_results, "No FS"),
+    extract_features(multi_results, "Multi"),
+    extract_features(uni_results, "Uni"),
+    extract_features(rsf_vi_results, "RSF VI"),
+    extract_features(rsf_md_results, "RSF MD"),
+    extract_features(rsf_vh_results, "RSF VH")
+  )
+  
+  # Save merged results to CSV files
+  write.csv(c_index_results, file.path(dir_name, paste0(custom_name, "_cindex_results.csv")), row.names = FALSE)
+  write.csv(feature_results, file.path(dir_name, paste0(custom_name,"_feature_results.csv")), row.names = FALSE)
   
   # Extract results from the input lists
   no_fs_feature_selected_result_summary <- no_fs_results$FeatureSelected
@@ -610,22 +654,6 @@ plot_results <- function(no_fs_results, multi_results, uni_results, rsf_vi_resul
   rsfmd_feature_selected_result_summary <- rsf_md_results$FeatureSelected
   rsfvh_cindex_result_summary <- rsf_vh_results$CIndex
   rsfvh_feature_selected_result_summary <- rsf_vh_results$FeatureSelected
-  
-  # Merge results
-  no_fs_feature_merged <- cbind(no_fs_feature_cindex_result_summary, no_fs_feature_selected_result_summary)
-  multi_feature_merged <- cbind(multi_feature_cindex_result_summary, multi_feature_selected_result_summary)
-  uni_feature_merged <- cbind(uni_feature_cindex_result_summary, uni_feature_selected_result_summary)
-  rsf_feature_merged <- cbind(rsf_cindex_result_summary, rsf_feature_selected_result_summary)
-  rsfmd_feature_merged <- cbind(rsfmd_cindex_result_summary, rsfmd_feature_selected_result_summary)
-  rsfvh_feature_merged <- cbind(rsfvh_cindex_result_summary, rsfvh_feature_selected_result_summary)
-  
-  # Save merged results to CSV files
-  write.csv(no_fs_feature_merged, file.path(dir_name, paste0(custom_name, "_no_fs_results.csv")), row.names = FALSE)
-  write.csv(multi_feature_merged, file.path(dir_name, paste0(custom_name, "_multi_results.csv")), row.names = FALSE)
-  write.csv(uni_feature_merged, file.path(dir_name, paste0(custom_name, "_uni_results.csv")), row.names = FALSE)
-  write.csv(rsf_feature_merged, file.path(dir_name, paste0(custom_name, "_rsf_results.csv")), row.names = FALSE)
-  write.csv(rsfmd_feature_merged, file.path(dir_name, paste0(custom_name, "_rsfmd_results.csv")), row.names = FALSE)
-  write.csv(rsfvh_feature_merged, file.path(dir_name, paste0(custom_name, "_rsfvh_results.csv")), row.names = FALSE)
   
   # Combine c-index results from the four data frames
   c_index_combined <- cbind(
@@ -643,7 +671,6 @@ plot_results <- function(no_fs_results, multi_results, uni_results, rsf_vi_resul
   c_index_df$Model <- rownames(c_index_df)
   rownames(c_index_df) <- NULL
   g3 <- melt(c_index_df)
-  
   gg <- ggplot(g3, aes(variable, Model, fill = value)) + 
     geom_tile(color = "white") +
     geom_text(aes(label = round(value, 2)), size = 3, color = "black") + 
@@ -661,8 +688,7 @@ plot_results <- function(no_fs_results, multi_results, uni_results, rsf_vi_resul
           plot.margin = margin(30, 30, 30, 30, unit = "pt")) +
     coord_equal(ratio = 0.7)
   
-  ggsave(file.path(dir_name, paste0(custom_name, "_mean_performance.png")), gg, width = 8, height = 6)
-  
+  ggsave(file.path(dir_name, paste0(custom_name, "_cindex_heatmap.pdf")), gg, width = 8, height = 6, device = "pdf")
   # Combine feature selection results from the four data frames
   feature_combined <- cbind(
     no_fs_feature_selected_result_summary$MeanFeatureSelected, 
@@ -697,7 +723,7 @@ plot_results <- function(no_fs_results, multi_results, uni_results, rsf_vi_resul
           plot.margin = margin(30, 30, 30, 30, unit = "pt")) +
     coord_equal(ratio = 0.7)
   
-  ggsave(file.path(dir_name, paste0(custom_name, "_mean_features.png")), gg2, width = 8, height = 6) 
+  ggsave(file.path(dir_name, paste0(custom_name, "_feature_heatmap.pdf")), gg2, width = 8, height = 6, device = "pdf")
 }
 
 # ============================================================
