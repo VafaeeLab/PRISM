@@ -980,7 +980,16 @@ univariate <- function(data) {
 # 4. Returns a dataframe (`significant_cox_df`) with the selected features.
 multivariate <- function(data) {
   # Cox Model
-  eval_cox_model <- coxph(Surv(overall_survival, deceased) ~ ., data = data)
+  eval_cox_model <- tryCatch({
+    coxph(Surv(overall_survival, deceased) ~ ., data = data, iter.max = 1000)
+  }, error = function(e) {
+    message("Cox model did not converge: ", e$message)
+    return(NULL)
+  })
+  
+  if (is.null(eval_cox_model)) {
+    return(NULL)
+  }
   # Extract coefficients and corresponding p-values
   cox_summary <- summary(eval_cox_model)
   cox_coefficients <- coef(eval_cox_model)
