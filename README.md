@@ -23,7 +23,7 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 ### **2. Evaluation of Individual Filter Methods**  
 📌 *Evaluate individual feature selection methods.*  
 - **Script:** `individual_selection.R`
-- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corrosponding `*_GE_data.csv`, `*_ME_data.csv`, `*_METH_data.csv`, `*_CNV_data.csv` omics data inside.
+- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corresponding `*_GE_data.csv`, `*_ME_data.csv`, `*_METH_data.csv`, `*_CNV_data.csv` omics data inside.
 - **Outputs:** Results for c-index & features selection for each modality per cancer type. `*_cindex_results.csv`, `*_feature_results.csv`,  `*_cindex_heatmap.pdf`,  `*_feature_heatmap.pdf`.
 
 ### **3. Cross-Validation Feature Selection**  
@@ -34,10 +34,20 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 
 ### **4. Multi-Omics Integration - One-Stage vs. Two-Stage Refinement**  
 📌 *Compare one-stage and two-stage refinement for multi-omics feature selection.*  
-- **Scripts:** `first_stage_refinement.R`, `second_stage_refinement.R`  
+- **Scripts:** `first_stage_refinement.R`, `second_stage_refinement.R`
+- **Inputs:** This requires you to have features selected by CV `features_cv.csv` inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`.
+- **Outputs:** Creates a `LF/` directory inside of `ME/`,`GE/`,`CNV/`, `METH/`, where every modality combintation is stored as a csv.
 
 ### **5. Pan-Cancer Downstream Analysis**  
 📌 *Perform pan-cancer analyses to identify shared pathways and therapeutic targets.*  
-- **Script:** `pan-cancer.R`  
+- **Script:** `pan-cancer.R`
+- **Inputs:** This requires you to have every modality combintation is stored in `LF/`, in particular `BRCA/LF/BRCA_METH_ME_CNV_data.csv`, `OV/LF/OV_ME_METH_data.csv`, `CESC/LF/CESC_METH_ME_CNV_data.csv`, `UCEC/LF/UCEC_METH_ME_CNV_data.csv`
+- **Outputs:**
+  1. Pancancer signiture overlap - `upset_plot.png`
+  2. miRNA disease-assoications across all cancers - `miRNA_Disease_Associations.pdf`
+  3. Disease gene enrichment network - `emapplot_output.pdf`
+  4. Go Terms & KEGG Pathway Enrichment plots
+  
+  
 
 
