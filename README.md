@@ -43,7 +43,7 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 - **Script:** `pan-cancer.R`
 - **Inputs:** This requires you to have every modality combintation is stored in `LF/`, in particular `BRCA/LF/BRCA_METH_ME_CNV_data.csv`, `OV/LF/OV_ME_METH_data.csv`, `CESC/LF/CESC_METH_ME_CNV_data.csv`, `UCEC/LF/UCEC_METH_ME_CNV_data.csv`
 - **Outputs:**
-  1. Pancancer signiture overlap - `upset_plot.png`
+  1. Pancancer signature overlap - `upset_plot.png`
   2. miRNA disease-assoications across all cancers - `miRNA_Disease_Associations.pdf`
   3. Disease gene enrichment network - `emapplot_output.pdf`
   4. Go Terms & KEGG Pathway Enrichment plots
