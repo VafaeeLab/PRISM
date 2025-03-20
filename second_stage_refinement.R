@@ -105,13 +105,13 @@ CNV_fusion=read.csv("BRCA/LF/BRCA_CNV_Fusion_data.csv", row.names = NULL)
 
 # Preprocess-----------------------------------------------------------------------
 
-BRCA_ME_filtered <- BRCA_ME_filtered[, names(BRCA_ME_filtered) %in% ME_fusion$variables]
+BRCA_ME_filtered <- BRCA_ME_filtered[, names(BRCA_ME_filtered) %in% ME_fusion$variables, drop = FALSE]
 BRCA_ME_filtered <- cbind(BRCA_ME[, 1:3], BRCA_ME_filtered)
-BRCA_GE_filtered <- BRCA_GE_filtered[, names(BRCA_GE_filtered) %in% GE_fusion$variables]
+BRCA_GE_filtered <- BRCA_GE_filtered[, names(BRCA_GE_filtered) %in% GE_fusion$variables, drop = FALSE]
 BRCA_GE_filtered <- cbind(BRCA_GE[, 1:3], BRCA_GE_filtered)
-BRCA_METH_filtered <- BRCA_METH_filtered[, names(BRCA_METH_filtered) %in% METH_fusion$variables]
+BRCA_METH_filtered <- BRCA_METH_filtered[, names(BRCA_METH_filtered) %in% METH_fusion$variables, drop = FALSE]
 BRCA_METH_filtered <- cbind(BRCA_METH[, 1:3], BRCA_METH_filtered)
-BRCA_CNV_filtered <- BRCA_CNV_filtered[, names(BRCA_CNV_filtered) %in% CNV_fusion$variables]
+BRCA_CNV_filtered <- BRCA_CNV_filtered[, names(BRCA_CNV_filtered) %in% CNV_fusion$variables, drop = FALSE]
 BRCA_CNV_filtered <- cbind(BRCA_CNV[, 1:3], BRCA_CNV_filtered)
 
 # Apply min-max normalization to features (excluding first three columns)
@@ -259,13 +259,13 @@ CNV_fusion=read.csv("OV/LF/OV_CNV_Fusion_data.csv", row.names = NULL)
 
 # Preprocess-----------------------------------------------------------------------
 
-OV_ME_filtered <- OV_ME_filtered[, names(OV_ME_filtered) %in% ME_fusion$variables]
+OV_ME_filtered <- OV_ME_filtered[, names(OV_ME_filtered) %in% ME_fusion$variables, drop = FALSE]
 OV_ME_filtered <- cbind(OV_ME[, 1:3], OV_ME_filtered)
-OV_GE_filtered <- OV_GE_filtered[, names(OV_GE_filtered) %in% GE_fusion$variables]
+OV_GE_filtered <- OV_GE_filtered[, names(OV_GE_filtered) %in% GE_fusion$variables, drop = FALSE]
 OV_GE_filtered <- cbind(OV_GE[, 1:3], OV_GE_filtered)
-OV_METH_filtered <- OV_METH_filtered[, names(OV_METH_filtered) %in% METH_fusion$variables]
+OV_METH_filtered <- OV_METH_filtered[, names(OV_METH_filtered) %in% METH_fusion$variables, drop = FALSE]
 OV_METH_filtered <- cbind(OV_METH[, 1:3], OV_METH_filtered)
-OV_CNV_filtered <- OV_CNV_filtered[, names(OV_CNV_filtered) %in% CNV_fusion$variables]
+OV_CNV_filtered <- OV_CNV_filtered[, names(OV_CNV_filtered) %in% CNV_fusion$variables, drop = FALSE]
 OV_CNV_filtered <- cbind(OV_CNV[, 1:3], OV_CNV_filtered)
 
 # Apply min-max normalization to features (excluding first three columns)
@@ -412,13 +412,13 @@ CNV_fusion=read.csv("CESC/LF/CESC_CNV_Fusion_data.csv", row.names = NULL)
 
 # Preprocess-----------------------------------------------------------------------
 
-CESC_ME_filtered <- CESC_ME_filtered[, names(CESC_ME_filtered) %in% ME_fusion$variables]
+CESC_ME_filtered <- CESC_ME_filtered[, names(CESC_ME_filtered) %in% ME_fusion$variables, drop = FALSE]
 CESC_ME_filtered <- cbind(CESC_ME[, 1:3], CESC_ME_filtered)
-CESC_GE_filtered <- CESC_GE_filtered[, names(CESC_GE_filtered) %in% GE_fusion$variables]
+CESC_GE_filtered <- CESC_GE_filtered[, names(CESC_GE_filtered) %in% GE_fusion$variables, drop = FALSE]
 CESC_GE_filtered <- cbind(CESC_GE[, 1:3], CESC_GE_filtered)
-CESC_METH_filtered <- CESC_METH_filtered[, names(CESC_METH_filtered) %in% METH_fusion$variables]
+CESC_METH_filtered <- CESC_METH_filtered[, names(CESC_METH_filtered) %in% METH_fusion$variables, drop = FALSE]
 CESC_METH_filtered <- cbind(CESC_METH[, 1:3], CESC_METH_filtered)
-CESC_CNV_filtered <- CESC_CNV_filtered[, names(CESC_CNV_filtered) %in% CNV_fusion$variables]
+CESC_CNV_filtered <- CESC_CNV_filtered[, names(CESC_CNV_filtered) %in% CNV_fusion$variables, drop = FALSE]
 CESC_CNV_filtered <- cbind(CESC_CNV[, 1:3], CESC_CNV_filtered)
 
 # Apply min-max normalization to features (excluding first three columns)
@@ -565,13 +565,13 @@ CNV_fusion=read.csv("UCEC/LF/UCEC_CNV_Fusion_data.csv", row.names = NULL)
 
 # Preprocess-----------------------------------------------------------------------
 
-UCEC_ME_filtered <- UCEC_ME_filtered[, names(UCEC_ME_filtered) %in% ME_fusion$variables]
+UCEC_ME_filtered <- UCEC_ME_filtered[, names(UCEC_ME_filtered) %in% ME_fusion$variables, drop = FALSE]
 UCEC_ME_filtered <- cbind(UCEC_ME[, 1:3], UCEC_ME_filtered)
-UCEC_GE_filtered <- UCEC_GE_filtered[, names(UCEC_GE_filtered) %in% GE_fusion$variables]
+UCEC_GE_filtered <- UCEC_GE_filtered[, names(UCEC_GE_filtered) %in% GE_fusion$variables, drop = FALSE]
 UCEC_GE_filtered <- cbind(UCEC_GE[, 1:3], UCEC_GE_filtered)
-UCEC_METH_filtered <- UCEC_METH_filtered[, names(UCEC_METH_filtered) %in% METH_fusion$variables]
+UCEC_METH_filtered <- UCEC_METH_filtered[, names(UCEC_METH_filtered) %in% METH_fusion$variables, drop = FALSE]
 UCEC_METH_filtered <- cbind(UCEC_METH[, 1:3], UCEC_METH_filtered)
-UCEC_CNV_filtered <- UCEC_CNV_filtered[, names(UCEC_CNV_filtered) %in% CNV_fusion$variables]
+UCEC_CNV_filtered <- UCEC_CNV_filtered[, names(UCEC_CNV_filtered) %in% CNV_fusion$variables, drop = FALSE]
 UCEC_CNV_filtered <- cbind(UCEC_CNV[, 1:3], UCEC_CNV_filtered)
 
 # Apply min-max normalization to features (excluding first three columns)
