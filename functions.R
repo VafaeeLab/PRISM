@@ -230,7 +230,7 @@ get_max_c_index_index <- function(result_list) {
 # - The function assumes that the columns to be normalized are numeric.
 min_max_normalize <- function(x) {
   if (ncol(x) > 3) {
-    x[, -c(1:3)] <- apply(x[, -c(1:3)], 2, function(y) (y - min(y)) / (max(y) - min(y)))
+    x[, -c(1:3)] <- as.data.frame(lapply(x[, -c(1:3), drop = FALSE], function(y) (y - min(y)) / (max(y) - min(y))))
   }
   return(x)
 }
