@@ -39,9 +39,9 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 - **Inputs:** This requires you to have features selected by CV `features_cv.csv` inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`.
 - **Outputs:** Creates a `2S/` directory inside of `ME/`,`GE/`,`CNV/`, `METH/` for Two-stage, will make `1S/` for First_stage, where every modality combintation is stored as a csv.
 
-### **5. Pan-Cancer Downstream Analysis**  
-📌 *Perform pan-cancer analyses to identify shared pathways and therapeutic targets.*  
-- **Script:** `pan-cancer.R`
+### **5. Comparative-Cancer Downstream Analysis**  
+📌 *Perform comparative-cancer analyses to identify shared pathways and therapeutic targets.*  
+- **Script:** `pcomparative_cancer_analysis.R`
 - **Inputs:** This requires you to have every modality combintation is stored in `1S/` or `2S`.
 - **Outputs:**
   1. Gene Target signature overlap - `pan-cancer_gene_target_overlaps.pdf`
