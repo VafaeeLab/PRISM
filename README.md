@@ -23,21 +23,21 @@ To ensure reproducibility, we recommend running the scripts in the following ord
 ### **2. Evaluation of Individual Filter Methods**  
 📌 *Evaluate individual feature selection methods.*  
 - **Script:** `individual_selection.R`
-- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corresponding `*_GE_clean.csv`, `*_ME_clean.csv`, `*_METH_clean.csv`, `*_CNV_clean.csv` omics data inside.
+- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corresponding `*_GE_clean.csv`, `*_ME_clean.csv`, `*_DM_clean.csv`, `*_CNV_clean.csv` omics data inside.
 - **Outputs:** Results for c-index & features selection for each modality per cancer type, for example `CESC_CNV_plots/`, would have files:
    `*_cindex_results.csv`, `*_feature_results.csv`,  `*_cindex_heatmap.pdf`,  `*_feature_heatmap.pdf`.  `*_summary_table.csv`
 
 ### **3. Cross-Validation & Bootstrapping Feature Selection**  
 📌 *Run both feature selection pipelines to identify key prognostic features.*  
 - **Script:** `feature_selection_pipelines.R`
-- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corrosponding `*_GE_clean.csv`, `*_ME_clean.csv`, `*_METH_clean.csv`, `*_CNV_clean.csv`  omics data inside.
-- **Outputs:** Creates `ME/`,`GE/`,`CNV/`, `METH/` omics subdirectories inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`. Where we have a csv of the features selected by CV `features_cv` & BS `features_bs`, as well as the results of performance against no feature selected `results_with_fs` `results_without_fs`. 
+- **Inputs:** This requires you to have `BRCA/`,`CESC/`,`OV/`, `UCEC/` directories with corrosponding `*_GE_clean.csv`, `*_ME_clean.csv`, `*_DM_clean.csv`, `*_CNV_clean.csv`  omics data inside.
+- **Outputs:** Creates `ME/`,`GE/`,`CNV/`, `DM/` omics subdirectories inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`. Where we have a csv of the features selected by CV `features_cv` & BS `features_bs`, as well as the results of performance against no feature selected `results_with_fs` `results_without_fs`. 
 
 ### **4. Multi-Omics Integration - One-Stage vs. Two-Stage Refinement**  
 📌 *Compare one-stage and two-stage refinement for multi-omics feature selection.*  
 - **Scripts:** `first_stage_refinement.R`, `second_stage_refinement.R`
 - **Inputs:** This requires you to have features selected by CV `features_cv.csv` inside of `BRCA/`,`CESC/`,`OV/`, `UCEC/`.
-- **Outputs:** Creates a `2S/` directory inside of `ME/`,`GE/`,`CNV/`, `METH/` for Two-stage, will make `1S/` for First_stage, where every modality combintation is stored as a csv.
+- **Outputs:** Creates a `2S/` directory inside of `ME/`,`GE/`,`CNV/`, `DM/` for Two-stage, will make `1S/` for First_stage, where every modality combintation is stored as a csv.
 
 ### **5. Comparative-Cancer Downstream Analysis**  
 📌 *Perform comparative-cancer analyses to identify shared pathways and therapeutic targets.*  
