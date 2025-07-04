@@ -26,54 +26,39 @@ library(enrichplot)
 library(clusterProfiler)
 library(DOSE)
 
-
-source("functions.R")
-set.seed(123)
-
-# *********************************************************************
-# Pan-cancer Analysis R Script Documentation
-# *********************************************************************
-
-# Overview:
-# This script conducts a pan-cancer analysis for four cancer types (BRCA, OV, CESC, and UCEC) to uncover 
-# shared multi-modal signatures across these cancers. The steps in the analysis are as follows:
-# 1. **MiRA Targets**: Identifies unique & common miRNA gene targets across the four cancers 
-# 2. **Gene Targets Disease Associations**: Using the gene targets, identifies further overlap
-#    via diease associations
-# 3. **GSEA**: Extracts the GO Terms and KEGG Pathways from the gene set
-# 4. **GO TERMS AND KEGG PATHWAYS**: Filters for the top 10 GO terms & KEGG Pathways with the highest aggregated scores.
-#    and plots it
-# 5. **GO & KEGG Overlaps**: Plots the  top 10 GO & KEGG overlaps that appear in all four cancer, sorted by highest aggregated scores
-# 6. **KM plots**: Creates KM plots for survival analysis
-# This analysis aims to identify shared biological themes, potential overlaps in miRNA targets, and key pathways across 
-# the cancers under study.
-
-# *********************************************************************
+.libPaths("/path/to/Rlib")
+setwd("/path/to/pwd")
 
 # Load multi-omics feature-level fusion datasets for each cancer type
-BRCA_data = read.csv("BRCA/LF/BRCA_METH_ME_CNV_data.csv", row.names = NULL)
-OV_data = read.csv("OV/LF/OV_ME_METH_data.csv", row.names = NULL)
-CESC_data = read.csv("CESC/LF/CESC_METH_ME_CNV_data.csv", row.names = NULL)
-UCEC_data = read.csv("UCEC/LF/UCEC_METH_ME_CNV_data.csv", row.names = NULL)
+BRCA_data = read.csv("BRCA/1S/BRCA_ME_GE_selected_features.csv", row.names = NULL)
+OV_data = read.csv("OV/2S/OV_ME_DM_selected_features.csv", row.names = NULL)
+CESC_data = read.csv("CESC/2S/CESC_ME_DM_selected_features.csv", row.names = NULL)
+UCEC_data = read.csv("UCEC/2S/UCEC_ME_GE_CNV_DM_selected_features.csv", row.names = NULL)
+
 
 # Load gene expression datasets for each cancer type
-BRCA_gene_data = read.csv("BRCA/BRCA_GE_data.csv", row.names = NULL)
-OV_gene_data = read.csv("OV/OV_GE_data.csv", row.names = NULL)
-CESC_gene_data = read.csv("CESC/CESC_GE_data.csv", row.names = NULL)
-UCEC_gene_data = read.csv("UCEC/UCEC_GE_data.csv", row.names = NULL)
+BRCA_gene_data = read.csv("BRCA/BRCA_GE_clean.csv", row.names = NULL)
+OV_gene_data = read.csv("OV/OV_GE_clean.csv", row.names = NULL)
+CESC_gene_data = read.csv("CESC/CESC_GE_clean.csv", row.names = NULL)
+UCEC_gene_data = read.csv("UCEC/UCEC_GE_clean.csv", row.names = NULL)
 
-# Remove the first column from gene expression datasets 
+# Remove the sampleID from gene expression datasets 
 BRCA_gene_data <- BRCA_gene_data[, -1]
 OV_gene_data <- OV_gene_data[, -1]
 CESC_gene_data <- CESC_gene_data[,-1]
 UCEC_gene_data <- UCEC_gene_data[, -1]
 
+# Remove rows with NA in the overall_survival column
+BRCA_gene_data  <- BRCA_gene_data[!is.na(BRCA_gene_data[[2]]), ]
+OV_gene_data  <- OV_gene_data[!is.na(OV_gene_data[[2]]), ]
+CESC_gene_data  <- CESC_gene_data[!is.na(CESC_gene_data[[2]]), ]
+UCEC_gene_data  <- UCEC_gene_data [!is.na(UCEC_gene_data [[2]]), ]
 
-# Extract the 'variables' column
-BRCA_vars <- BRCA_data$variables
-OV_vars <- OV_data$variables
-CESC_vars <- CESC_data$variables
-UCEC_vars <- UCEC_data$variables
+# Extract the 'Feature' column
+BRCA_vars <- BRCA_data$Feature
+OV_vars <- OV_data$Feature
+CESC_vars <- CESC_data$Feature
+UCEC_vars <- UCEC_data$Feature
 
 # Generate and save an UpSet plot to visualize the overlap of features between cancer types
 listInput <- list(BRCA = BRCA_vars, OV = OV_vars, CESC = CESC_vars, UCEC = UCEC_vars)
@@ -82,6 +67,38 @@ upset(fromList(listInput), order.by = "freq")
 grid.text("Pan-cancer Signature Overlap", x = 0.7, y = 0.98, gp = gpar(fontsize = 10, fontface = "bold"))
 dev.off()
 dev.new()
+
+# Get all combinations of cancer types (2 or more)
+cancer_combinations <- unlist(lapply(2:length(listInput), function(k) {
+  combn(names(listInput), k, simplify = FALSE)
+}), recursive = FALSE)
+
+# Initialize empty list to hold results
+overlap_table <- list()
+
+# Find overlaps for each combination
+for (combo in cancer_combinations) {
+  # Get the intersection of features across the selected cancer types
+  overlapping_features <- Reduce(intersect, listInput[combo])
+  
+  # If there's any overlap, store the result
+  if (length(overlapping_features) > 0) {
+    combo_name <- paste(combo, collapse = ", ")
+    overlap_table[[combo_name]] <- overlapping_features
+  }
+}
+
+# Convert to data frame for better viewing
+overlap_df <- do.call(rbind, lapply(names(overlap_table), function(name) {
+  data.frame(
+    `Cancer Types` = name,
+    `Overlapping Features` = paste(overlap_table[[name]], collapse = ", "),
+    stringsAsFactors = FALSE
+  )
+}))
+
+write.csv(overlap_df, "pan_cancer_feature_overlap_table.csv", row.names = FALSE)
+
 
 # Function to extract gene names for CNV features
 extract_cnv_names <- function(vars) {
@@ -93,50 +110,41 @@ extract_me_names <- function(vars) {
   gene_names <- sub("^ME_", "", vars[grepl("^ME_", vars)])
   return(gene_names)
 }
-# Function to extract gene names for METH features
-extract_meth_names <- function(vars) {
-  gene_names <- sub("^METH_", "", vars[grepl("^METH_", vars)])
+# Function to extract gene names for DM features
+extract_dm_names <- function(vars) {
+  gene_names <- sub("^DM_", "", vars[grepl("^DM_", vars)])
+  return(gene_names)
+}
+# Function to extract gene names for GE features
+extract_ge_names <- function(vars) {
+  gene_names <- sub("^GE_", "", vars[grepl("^GE_", vars)])
   return(gene_names)
 }
 
+
 # Extract GE and CNV gene names for each cancer type
-BRCA_cnv_genes <- extract_cnv_names(BRCA_vars)
-OV_cnv_genes <- extract_cnv_names(OV_vars)
-CESC_cnv_genes <- extract_cnv_names(CESC_vars)
+BRCA_ge_genes <- extract_ge_names(BRCA_vars)
+UCEC_ge_genes <- extract_ge_names(UCEC_vars)
+
 UCEC_cnv_genes <- extract_cnv_names(UCEC_vars)
-BRCA_me_genes <- extract_me_names(BRCA_vars)
+BRCA_cnv_genes <- extract_cnv_names(BRCA_vars)
+
 OV_me_genes <- extract_me_names(OV_vars)
 CESC_me_genes <- extract_me_names(CESC_vars)
 UCEC_me_genes <- extract_me_names(UCEC_vars)
-BRCA_meth_genes <- extract_meth_names(BRCA_vars)
-OV_meth_genes <- extract_meth_names(OV_vars)
-CESC_meth_genes <- extract_meth_names(CESC_vars)
-UCEC_meth_genes <- extract_meth_names(UCEC_vars)
+BRCA_me_genes <- extract_me_names(BRCA_vars)
 
-
-
+OV_dm_genes <- extract_dm_names(OV_vars)
+CESC_dm_genes <- extract_dm_names(CESC_vars)
 #################################################################################
 #                             MiRA Targets
 #################################################################################
 
-BRCA_me_genes <- extract_me_names(BRCA_vars)
-OV_me_genes <- extract_me_names(OV_vars)
-CESC_me_genes <- extract_me_names(CESC_vars)
-UCEC_me_genes <- extract_me_names(UCEC_vars)
-
 # Function to convert miRNA IDs to hsa-miR-XX-5p or hsa-miR-XX-3p format
 convert_miRNA_ids <- function(mirna_ids) {
   mirna_ids <- gsub("\\.", "-", mirna_ids)
-  converted_ids <- c()
-  for (id in mirna_ids) {
-    converted_id_5p <- paste0(id, "-5p")
-    converted_id_3p <- paste0(id, "-3p")
-    converted_ids <- c(converted_ids, converted_id_5p, converted_id_3p)
-  }
-  return(converted_ids)
+  return(mirna_ids)
 }
-
-# Convert miRNA IDs for BRCA and retrieve target genes using multiMiR
 BRCA_me_genes <- convert_miRNA_ids(BRCA_me_genes)
 BRCA_gene_targets <- get_multimir(mirna = BRCA_me_genes,summary = TRUE)
 # Extract mature miRNA IDs and their corresponding target gene symbols
@@ -144,13 +152,13 @@ mature_mirna_ids <- BRCA_gene_targets@summary$mature_mirna_id
 target_symbols <- BRCA_gene_targets@summary$target_symbol
 # Create a dataframe of miRNA-gene target interactions for BRCA
 BRCA_gene_target_df <- data.frame(mature_mirna_id = mature_mirna_ids,
-                 target_symbol = target_symbols)
+                                  target_symbol = target_symbols)
 # Filter out empty entries
 BRCA_gene_target_df <- BRCA_gene_target_df %>%
   filter(mature_mirna_id != "" & target_symbol != "")
 
 # Filter target genes to retain only those that are expressed in BRCA data
-expressed_genes <- colnames(BRCA_gene_data)[4:ncol(BRCA_gene_data)]
+expressed_genes <- colnames(BRCA_gene_data)[3:ncol(BRCA_gene_data)]
 BRCA_gene_target_df <- BRCA_gene_target_df[BRCA_gene_target_df$target_symbol %in% expressed_genes, ]
 
 # Convert miRNA IDs for OV and retrieve target genes using multiMiR
@@ -168,7 +176,7 @@ OV_gene_target_df <- data.frame(
 OV_gene_target_df <- OV_gene_target_df %>%
   filter(mature_mirna_id != "" & target_symbol != "")
 # Filter target genes to retain only those that are expressed in OV data
-expressed_genes <- colnames(OV_gene_data)[4:ncol(OV_gene_data)]
+expressed_genes <- colnames(OV_gene_data)[3:ncol(OV_gene_data)]
 OV_gene_target_df <- OV_gene_target_df[OV_gene_target_df$target_symbol %in% expressed_genes, ]
 
 # Convert miRNA IDs for CESC and retrieve target genes using multiMiR
@@ -186,7 +194,7 @@ CESC_gene_target_df <- data.frame(
 CESC_gene_target_df <- CESC_gene_target_df %>%
   filter(mature_mirna_id != "" & target_symbol != "")
 # Filter target genes to retain only those that are expressed in CESC data
-expressed_genes <- colnames(CESC_gene_data)[4:ncol(CESC_gene_data)]
+expressed_genes <- colnames(CESC_gene_data)[3:ncol(CESC_gene_data)]
 CESC_gene_target_df <- CESC_gene_target_df[CESC_gene_target_df$target_symbol %in% expressed_genes, ]
 # Convert miRNA IDs for UCEC and retrieve target genes using multiMiR
 UCEC_me_genes <- convert_miRNA_ids(UCEC_me_genes)
@@ -203,7 +211,7 @@ UCEC_gene_target_df <- data.frame(
 UCEC_gene_target_df <- UCEC_gene_target_df %>%
   filter(mature_mirna_id != "" & target_symbol != "")
 # Filter target genes to retain only those that are expressed in UCEC data
-expressed_genes <- colnames(UCEC_gene_data)[4:ncol(UCEC_gene_data)]
+expressed_genes <- colnames(UCEC_gene_data)[3:ncol(UCEC_gene_data)]
 UCEC_gene_target_df <- UCEC_gene_target_df[UCEC_gene_target_df$target_symbol %in% expressed_genes, ]
 
 # Create a list of target genes for each cancer type
@@ -216,49 +224,16 @@ listInput <- list(
 
 # Generate an UpSet plot to visualize shared and unique miRNA-target interactions across cancer types
 upset_data <- fromList(listInput)
+# Save the plot to a PDF file
+pdf("pan-cancer_gene_target_overlaps.pdf", width = 8, height = 6)
 upset(upset_data, order.by = "freq")
-
-# Combine the gene targets from all four data frames
-combined_targets <- bind_rows(
-  BRCA_gene_target_df %>% dplyr::select(target_symbol),
-  OV_gene_target_df %>% dplyr::select(target_symbol),
-  CESC_gene_target_df %>% dplyr::select(target_symbol),
-  UCEC_gene_target_df %>% dplyr::select(target_symbol)
-)
-
-# Count the frequency of each gene target
-gene_freq <- combined_targets %>%
-  group_by(target_symbol) %>%
-  summarise(frequency = n()) %>%
-  arrange(desc(frequency))
-
-# Identify common genes in all four data frames
-common_genes <- Reduce(intersect, list(
-  BRCA_gene_target_df$target_symbol,
-  OV_gene_target_df$target_symbol,
-  CESC_gene_target_df$target_symbol,
-  UCEC_gene_target_df$target_symbol
-))
-
-# Combine the gene targets from all four data frames
-combined_targets <- bind_rows(
-  BRCA_gene_target_df %>% filter(target_symbol %in% common_genes) %>% dplyr::select(target_symbol),
-  OV_gene_target_df %>% filter(target_symbol %in% common_genes) %>% dplyr::select(target_symbol),
-  CESC_gene_target_df %>% filter(target_symbol %in% common_genes) %>% dplyr::select(target_symbol),
-  UCEC_gene_target_df %>% filter(target_symbol %in% common_genes) %>% dplyr::select(target_symbol)
-)
-
-# Count the frequency of each common gene target
-common_gene_freq <- combined_targets %>%
-  group_by(target_symbol) %>%
-  summarise(frequency = n()) %>%
-  arrange(desc(frequency))
-
+dev.off()
 
 
 #################################################################################
 #                      Gene Targets Disease Associations
 #################################################################################
+
 
 # Retrieve miRNA-disease associations for BRCA using multiMiR's 'mir2disease' table
 BRCA_DD_targets <- get_multimir(mirna = BRCA_me_genes, table = 'mir2disease', summary = TRUE)
@@ -331,49 +306,29 @@ all_disease_associations <- bind_rows(
   mutate(UCEC_DD_target_df, cancer_type = "UCEC")
 )
 
+# Combine into a named list
+miRNA_lists <- list(
+  BRCA = BRCA_me_genes,
+  OV = OV_me_genes,
+  CESC = CESC_me_genes,
+  UCEC = UCEC_me_genes
+)
+# Flatten into one long vector with cancer labels
+miRNA_all <- unlist(miRNA_lists)
+# Count how many times each miRNA appears across cancers
+miRNA_counts <- table(miRNA_all)
+# Get miRNAs that appear in 2 or more cancers
+miRNA_overlap <- names(miRNA_counts[miRNA_counts >= 2])
 
-# Get the overlapping miRNA and 
-# identify and compare diseases associated with overlapping miRNAs across different cancer types.
-
-overlapping_miRNAs <- c("hsa.mir.150", "hsa.mir.22", "hsa.mir.30a", "hsa.mir.31", 
-                        "hsa.mir.7a.1", "hsa.mir.7a.3", "hsa.mir.135b", "hsa.mir.140", 
-                        "hsa.mir.142", "hsa.mir.144", "hsa.mir.148a", "hsa.mir.155", 
-                        "hsa.mir.196a.1", "hsa.mir.335")
-
-overlapping_miRNAs <- convert_miRNA_ids(overlapping_miRNAs)
-overlapping_miRNAs <- gsub("mir", "miR", overlapping_miRNAs)
-
+overlapping_miRNAs<- convert_miRNA_ids(miRNA_overlap)
 filtered_associations <- all_disease_associations %>%
   filter(mature_mirna_id %in% overlapping_miRNAs)
-
-
-# Function to revert miRNA IDs to their original form
-revert_miRNA_ids <- function(mirna_ids) {
-  # Initialize an empty vector to store results
-  original_ids <- character(length(mirna_ids))
-  
-  # Loop through each miRNA ID and revert format
-  for (i in seq_along(mirna_ids)) {
-    # Remove the "-5p" and "-3p" suffixes
-    id <- gsub("-5p|-3p", "", mirna_ids[i])
-    # Replace "-" with "." to revert to the original format
-    id <- gsub("-", ".", id)
-    # Store the result
-    original_ids[i] <- id
-  }
-  
-  return(original_ids)
-}
-
-# Apply the revert_miRNA_ids function to mature_mirna_id column
-filtered_associations <- filtered_associations %>%
-  mutate(original_mirna_id = revert_miRNA_ids(mature_mirna_id))
 
 # Group by disease and count the number of unique miRNAs associated with each disease
 common_diseases <- filtered_associations %>%
   group_by(disease_drug) %>%
-  summarise(num_miRNAs = n_distinct(mature_mirna_id)) %>%
-  filter(num_miRNAs > 1)  # Keep only diseases associated with more than one miRNA
+  summarise(num_miRNAs = n_distinct(mature_mirna_id))
+
 
 # Filter the original dataset to include only these common diseases
 filtered_common_diseases <- filtered_associations %>%
@@ -381,8 +336,8 @@ filtered_common_diseases <- filtered_associations %>%
 
 # Example edges data frame
 edges <- filtered_common_diseases %>%
-  select(original_mirna_id, disease_drug, cancer_type) %>%
-  rename(from = original_mirna_id, to = disease_drug) %>%
+  select(mature_mirna_id, disease_drug, cancer_type) %>%
+  rename(from = mature_mirna_id, to = disease_drug) %>%
   group_by(from, to) %>%
   summarise(cancer_type = paste(sort(unique(cancer_type)), collapse = ", "))  # Combine cancer types into one string
 # Create a graph object
@@ -397,20 +352,34 @@ graph_filtered <- graph_from_data_frame(edges_filtered, directed = FALSE)
 graph_filtered <- induced_subgraph(graph_filtered, which(degree(graph_filtered) > 1))
 # Convert to tidygraph object
 tidy_graph <- as_tbl_graph(graph_filtered)
-# Assuming `tidy_graph` is already prepared and `edges_filtered` is your filtered data
+# Plot
 p <- ggraph(tidy_graph, layout = "fr") + 
-  geom_edge_link(aes(color = cancer_type), alpha = 0.6) +
-  geom_node_point(aes(color = name %in% edges_filtered$from), size = 5) +
-  geom_node_text(aes(label = name), repel = TRUE, size = 2, max.overlaps = 100, box.padding = 0.5) +  # Reduced size
-  theme_void() +  # Remove all axes and grid lines
-  labs(title = "miRNA-Disease Associations Across Cancers",
-       edge_color = "Cancer Type",
-       node_color = "Type") +
-  scale_color_manual(values = c("blue", "red", "purple"),  # Define colors based on cancer type combinations
-                     labels = c("Disease", "miRNA"),
-                     name = "Association Type") +
-  theme(legend.position = "bottom")  # Adjust legend position for clarity
-# Export the plot to a PDF
+  geom_edge_link(aes(color = cancer_type), alpha = 0.6, show.legend = TRUE) +
+  geom_node_point(aes(color = name %in% edges_filtered$from), size = 5, show.legend = TRUE) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 4, max.overlaps = 100, box.padding = 0.5) +
+  theme_void() +
+  guides(
+    edge_color = guide_legend(
+      title = "Cancer Type",
+      override.aes = list(size = 1, linetype = 1, shape = NA)  # Removes dot, keeps line
+    ),
+    color = guide_legend(
+      title = "Node Type",
+      override.aes = list(size = 4, shape = 16)  # Keeps circle for node legend
+    )
+  ) +
+  scale_color_manual(
+    values = c("FALSE" = "blue", "TRUE" = "red"),
+    labels = c("Disease", "miRNA"),
+    name = "Node Type"
+  ) +
+  theme(
+    legend.justification = c("right", "top"),
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 9),
+    plot.title = element_blank()
+  )
+# Save the plot
 ggsave("miRNA_Disease_Associations.pdf", plot = p, width = 10, height = 8)
 
 
@@ -419,6 +388,7 @@ BRCA_genes <- BRCA_gene_target_df$target_symbol
 CESC_genes <- CESC_gene_target_df$target_symbol
 UCEC_genes <- UCEC_gene_target_df$target_symbol
 OV_genes <- OV_gene_target_df$target_symbol
+
 # Find the intersection of gene symbols across all four cancer types (BRCA, CESC, UCEC, OV)
 geneList <- Reduce(intersect, list(BRCA_genes, CESC_genes, UCEC_genes, OV_genes))
 # Convert the list of gene symbols to ENTREZ IDs using the bitr function from the clusterProfiler package
@@ -429,14 +399,20 @@ edo <- enrichDGN(geneList_entrez$ENTREZID)
 # Perform pairwise similarity analysis on the enriched terms to improve the visualization of the enrichment map
 edo <- pairwise_termsim(edo)
 # Open a PDF device to save the generated enrichment map plot
-pdf("emapplot_output.pdf", width = 8, height = 6)  # Set the dimensions of the output plot
+pdf("emapplot_output_miRNA.pdf", width = 10, height = 8)  # Set the dimensions of the output plot
 # Generate and display the enrichment map plot
-emapplot(edo)
+emapplot(
+  edo,
+  layout = "nicely",          # More spaced layout than default
+  showCategory = 30,          # Max number of categories shown (adjust as needed)
+)
 # Close the PDF device, saving the plot to the file
 dev.off()
 
+
+
 #################################################################################
-#                                     GSEA
+#                                   GSEA
 #################################################################################
 # Retrieve available Enrichr databases
 dbs <- listEnrichrDbs()
@@ -452,7 +428,6 @@ filter_dbs <- function(name) {
   }
   return(FALSE)
 }
-
 # Apply filtering function to Enrichr databases
 filtered_dbs <- dbs[sapply(dbs$libraryName, filter_dbs), ]
 dbs <- filtered_dbs$libraryName
@@ -480,10 +455,10 @@ perform_gsea_df <- function(gene_list, cancer_type, data_type) {
 }
 
 # Perform GSEA for each cancer type using gene targets
-BRCA_GSEA_results <- perform_gsea_df(BRCA_gene_target_df$target_symbol, "BRCA", "GE")
-OV_GSEA_results <- perform_gsea_df(OV_gene_target_df$target_symbol, "OV", "GE")
-CESC_GSEA_results <- perform_gsea_df(CESC_gene_target_df$target_symbol, "CESC", "GE")
-UCEC_GSEA_results <- perform_gsea_df(UCEC_gene_target_df$target_symbol, "UCEC", "GE")
+BRCA_GSEA_results <- perform_gsea_df(BRCA_gene_target_df$target_symbol, "BRCA", "ME")
+OV_GSEA_results <- perform_gsea_df(OV_gene_target_df$target_symbol, "OV", "ME")
+CESC_GSEA_results <- perform_gsea_df(CESC_gene_target_df$target_symbol, "CESC", "ME")
+UCEC_GSEA_results <- perform_gsea_df(UCEC_gene_target_df$target_symbol, "UCEC", "ME")
 
 # Extract significant GO and KEGG pathway results (Adjusted P-value ≤ 0.05)
 BRCA_significant_results_GO <- BRCA_GSEA_results[grepl("GO", rownames(BRCA_GSEA_results)) & BRCA_GSEA_results$Adjusted.P.value <= 0.05, ]
@@ -497,7 +472,6 @@ CESC_significant_results_KEGG <- CESC_GSEA_results[grepl("KEGG", rownames(CESC_G
 
 UCEC_significant_results_GO <- UCEC_GSEA_results[grepl("GO", rownames(UCEC_GSEA_results)) & UCEC_GSEA_results$Adjusted.P.value <= 0.05, ]
 UCEC_significant_results_KEGG <- UCEC_GSEA_results[grepl("KEGG", rownames(UCEC_GSEA_results)) & UCEC_GSEA_results$Adjusted.P.value <= 0.05, ]
-
 
 #################################################################################
 #                            GO TERMS AND KEGG PATHWAYS
@@ -539,32 +513,25 @@ OV_significant_results_GO$Overlaps <- sapply(strsplit(OV_significant_results_GO$
 CESC_significant_results_GO$Overlaps <- sapply(strsplit(CESC_significant_results_GO$Overlap, "/"), function(x) as.numeric(x[1]) / as.numeric(x[2]))
 UCEC_significant_results_GO$Overlaps <- sapply(strsplit(UCEC_significant_results_GO$Overlap, "/"), function(x) as.numeric(x[1]) / as.numeric(x[2]))
 
-# Plot enrichment results for GO terms for each cancer type (BRCA, OV, CESC, UCEC)
-plotEnrich(BRCA_significant_results_GO, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'GO Terms', title = 'Enrichment plot for BRCA')
+save_plotEnrich_pdf <- function(enrich_result, filename, xlab_title, plot_title) {
+  pdf(filename, width = 8, height = 6)     # 1. open PDF device
+  p <- plotEnrich(enrich_result, showTerms = 10, numChar = 100, y = "Count",
+                  orderBy = "Combined.Score", xlab = xlab_title, title = plot_title)
+  print(p)                                # 2. explicitly print the plot if it's a ggplot object
+  dev.off()                               # 3. close the device to save the file
+}
 
-plotEnrich(OV_significant_results_GO, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'GO Terms', title = 'Enrichment plot for OV')
+# GO term enrichment plots
+save_plotEnrich_pdf(BRCA_significant_results_GO, "miRNA_BRCA_GO_enrichment.pdf", "GO Terms", "Enrichment plot for BRCA")
+save_plotEnrich_pdf(OV_significant_results_GO, "miRNA_OV_GO_enrichment.pdf", "GO Terms", "Enrichment plot for OV")
+save_plotEnrich_pdf(CESC_significant_results_GO, "miRNA_CESC_GO_enrichment.pdf", "GO Terms", "Enrichment plot for CESC")
+save_plotEnrich_pdf(UCEC_significant_results_GO, "miRNA_UCEC_GO_enrichment.pdf", "GO Terms", "Enrichment plot for UCEC")
 
-plotEnrich(CESC_significant_results_GO, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'GO Terms', title = 'Enrichment plot for CESC')
-
-plotEnrich(UCEC_significant_results_GO, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'GO Terms', title = 'Enrichment plot for UCEC')
-
-# Plot enrichment results for KEGG pathways for each cancer type (BRCA, OV, CESC, UCEC)
-plotEnrich(BRCA_significant_results_KEGG, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'KEGG Pathways', title = 'Enrichment plot for BRCA')
-
-plotEnrich(OV_significant_results_KEGG, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'KEGG Pathways', title = 'Enrichment plot for OV')
-
-plotEnrich(CESC_significant_results_KEGG, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'KEGG Pathways', title = 'Enrichment plot for CESC')
-
-plotEnrich(UCEC_significant_results_KEGG, showTerms = 10, numChar = 100, y = "Count",
-           orderBy = "Combined.Score", xlab = 'KEGG Pathways', title = 'Enrichment plot for UCEC')
-
+# KEGG pathway enrichment plots
+save_plotEnrich_pdf(BRCA_significant_results_KEGG, "miRNA_BRCA_KEGG_enrichment.pdf", "KEGG Pathways", "Enrichment plot for BRCA")
+save_plotEnrich_pdf(OV_significant_results_KEGG, "miRNA_OV_KEGG_enrichment.pdf", "KEGG Pathways", "Enrichment plot for OV")
+save_plotEnrich_pdf(CESC_significant_results_KEGG, "miRNA_CESC_KEGG_enrichment.pdf", "KEGG Pathways", "Enrichment plot for CESC")
+save_plotEnrich_pdf(UCEC_significant_results_KEGG, "miRNA_UCEC_KEGG_enrichment.pdf", "KEGG Pathways", "Enrichment plot for UCEC")
 
 
 #################################################################################
@@ -588,8 +555,12 @@ binary_matrix <- data.frame(
   UCEC = as.numeric(all_terms %in% UCEC_terms)
 )
 
-# Plot an upset plot to visualize the intersections of KEGG pathways across cancer types
+# Open PDF device to save plot
+pdf("KEGG_pathways_upset_plot.pdf", width = 8, height = 6)
+# Create the UpSet plot
 upset(binary_matrix, sets = c("BRCA", "OV", "CESC", "UCEC"), order.by = "freq")
+# Close the PDF device to finalize the file
+dev.off()
 
 # Filter terms that are shared across all four cancer types
 shared_terms <- binary_matrix %>%
@@ -678,7 +649,7 @@ filtered_shared_terms <- shared_terms_filtered %>%
 
 # Plotting the data: Visualize the top 10 KEGG pathways with points sized by number of genes
 # and colored by combined score across the four cancer types
-ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
+p <- ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
   geom_point(aes(size = Genes, color = Score)) +
   scale_color_gradient(low = "blue", high = "red") +
   theme_minimal() +
@@ -688,7 +659,7 @@ ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
-
+ggsave("KEGG_Pathway_Enrichment_All_Cancers.pdf", plot = p, width = 8, height = 6)
 
 #################################################################################
 #                         GO TERMS Overlap Across All Cancers 
@@ -705,8 +676,12 @@ binary_matrix <- data.frame(
   CESC = as.numeric(all_terms %in% CESC_terms),
   UCEC = as.numeric(all_terms %in% UCEC_terms)
 )
+# Open PDF device to save plot
+pdf("GO_Terms_upset_plot.pdf", width = 8, height = 6)
+# Create the UpSet plot
 upset(binary_matrix, sets = c("BRCA", "OV", "CESC", "UCEC"), order.by = "freq")
-
+# Close the PDF device to finalize the file
+dev.off()
 shared_terms <- binary_matrix %>%
   filter(BRCA == 1 & OV == 1 & CESC == 1 & UCEC == 1)
 
@@ -786,10 +761,10 @@ shared_terms_aggregated <- shared_terms_filtered %>%
 top_10_terms <- shared_terms_aggregated$Term
 
 filtered_shared_terms <- shared_terms_filtered %>%
-  filter(Term %in% top_20_terms)
+  filter(Term %in% top_10_terms)
 
 # Plotting
-ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
+p <-ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
   geom_point(aes(size = Genes, color = Score)) +
   scale_color_gradient(low = "blue", high = "red") +
   theme_minimal() +
@@ -799,107 +774,5 @@ ggplot(filtered_shared_terms, aes(x = Cancer, y = Term)) +
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
-#################################################################################
-#                           KM PLOTS
-#################################################################################
+ggsave("GO_Term_Enrichment_All_Cancers.pdf", plot = p, width = 8, height = 6)
 
-BRCA_CNV_data = read.csv("BRCA/BRCA_CNV_data.csv", row.names = NULL)
-CESC_CNV_data = read.csv("CESC/CESC_CNV_data.csv", row.names = NULL)
-UCEC_CNV_data = read.csv("UCEC/UCEC_CNV_data.csv", row.names = NULL)
-
-BRCA_ME_data <- read.csv("BRCA/BRCA_ME_data.csv", row.names = NULL)
-CESC_ME_data <- read.csv("CESC/CESC_ME_data.csv", row.names = NULL)
-UCEC_ME_data <- read.csv("UCEC/UCEC_ME_data.csv", row.names = NULL)
-OV_ME_data <- read.csv("OV/OV_ME_data.csv", row.names = NULL)
-
-BRCA_METH_data <- read.csv("BRCA/BRCA_METH_data.csv", row.names = NULL)
-CESC_METH_data <- read.csv("CESC/CESC_METH_data.csv", row.names = NULL)
-UCEC_METH_data <- read.csv("UCEC/UCEC_METH_data.csv", row.names = NULL)
-OV_METH_data <- read.csv("OV/OV_METH_data.csv", row.names = NULL)
-
-BRCA_CNV_data <- BRCA_CNV_data[,-1]
-CESC_CNV_data <- CESC_CNV_data[,-1]
-UCEC_CNV_data <- UCEC_CNV_data[,-1]
-
-BRCA_ME_data <- BRCA_ME_data[,-1]
-CESC_ME_data <- CESC_ME_data[,-1]
-UCEC_ME_data <- UCEC_ME_data[,-1]
-OV_ME_data <- OV_ME_data[,-1]
-
-BRCA_METH_data <- BRCA_METH_data[,-1]
-CESC_METH_data <- CESC_METH_data[,-1]
-UCEC_METH_data <- UCEC_METH_data[,-1]
-OV_METH_data <- OV_METH_data[,-1]
-
-
-# Adapted function for creating KM plots for gene expression/miRNA data - example
-gene <- "TIMP2"
-data <- BRCA_gene_data
-cancer <- "BRCA"
-data <- data[, c("case_id", "overall_survival", "deceased", gene)]
-column_value <- data[[gene]]
-median_value <- median(column_value, na.rm = TRUE)
-data <- data %>%
-  mutate(strata = case_when(
-    data[[gene]] >= median_value ~ "High",
-    data[[gene]] < median_value ~ "Low",
-    TRUE ~ NA_character_
-  ))
-combined_data <- na.omit(data)
-surv_object <- Surv(time = combined_data$overall_survival, event = combined_data$deceased)
-fit <- survfit(surv_object ~ strata, data = combined_data)
-ggsurv <- ggsurvplot(fit,
-                     data = combined_data,
-                     risk.table = TRUE,
-                     pval = TRUE,
-                     title = paste("Kaplan-Meier Curve", cancer, "for gene:", gene),
-                     xlab = "Time (days)",
-                     ylab = "Survival Probability",
-                     palette = "Dark2")
-print(ggsurv)
-
-# Adapted function for creating KM plots for methylation data - example
-cpg_probe <-"cg17525406"
-data <- UCEC_METH_data
-cancer <- "UCEC"
-data <- data[, c("case_id", "overall_survival", "deceased", cpg_probe)]
-data[[cpg_probe]] <- as.numeric(data[[cpg_probe]])
-# Categorize methylation levels
-data$strata <- cut(data[[cpg_probe]], 
-                   breaks = c(-Inf, 0.2, 0.8, Inf), 
-                   labels = c("Low", "Partial", "High"),
-                   right = FALSE)
-surv_object <- Surv(time = data$overall_survival, event = data$deceased)
-fit <- survfit(surv_object ~ strata, data = data)
-ggsurv <- ggsurvplot(fit,
-                     data = data,
-                     risk.table = TRUE,
-                     pval = TRUE,
-                     title = paste("Kaplan-Meier Curve", cancer, "for CpG Probe:", cpg_probe),
-                     xlab = "Time (days)",
-                     ylab = "Survival Probability",
-                     palette = "Dark2")
-print(ggsurv)
-
-# Adapted function for creating KM plots for CNV data - example
-gene <-"AHNAK"
-data <- BRCA_CNV_data
-cancer <- "BRCA"
-# Select relevant columns including the specific gene column
-data <- data[, c("case_id", "overall_survival", "deceased", gene)]
-# Ensure the specific gene column is numeric
-data[[gene]] <- as.numeric(data[[gene]])
-# Categorize CNV into Gain, Loss, and Neutral
-data$strata <- ifelse(data[[gene]] > 0, "Gain",
-                      ifelse(data[[gene]] < 0, "Loss", "Neutral"))
-surv_object <- Surv(time = data$overall_survival, event = data$deceased)
-fit <- survfit(surv_object ~ strata, data = data)
-ggsurv <- ggsurvplot(fit,
-                     data = data,
-                     risk.table = TRUE,
-                     pval = TRUE,
-                     title = paste("Kaplan-Meier Curve", cancer, "for Gene:", gene),
-                     xlab = "Time (days)",
-                     ylab = "Survival Probability",
-                     palette = "Dark2")
-print(ggsurv)
